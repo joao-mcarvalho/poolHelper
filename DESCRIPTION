@@ -20,3 +20,5 @@ Suggests:
     knitr,
     rmarkdown
 VignetteBuilder: knitr
+URL: https://github.com/joao-mcarvalho/poolHelper
+BugReports: https://github.com/joao-mcarvalho/poolHelper/issues
