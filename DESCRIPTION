@@ -18,7 +18,8 @@ Imports:
     stats
 Suggests: 
     knitr,
-    rmarkdown
+    rmarkdown,
+    ggplot2
 VignetteBuilder: knitr
 URL: https://github.com/joao-mcarvalho/poolHelper
 BugReports: https://github.com/joao-mcarvalho/poolHelper/issues
