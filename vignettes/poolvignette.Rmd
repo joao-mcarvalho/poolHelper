@@ -9,6 +9,7 @@ vignette: >
 
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
+  out.width = '70%', dpi = 300,
   collapse = TRUE,
   comment = "#>"
 )
@@ -112,7 +113,7 @@ As you can see, by varying the `nDip` input argument, we can evaluate what is th
 
 The `maeFreqs` function can also be used to simultaneously test different combinations of parameters. By varying the `mCov`, `pError` and/or `nDip` input arguments, the impact of multiple combinations of those parameters can be quickly assessed. The `maeFreqs` function will simulate all possible combinations of those parameters and compute the average absolute difference between allele frequencies.
 
-```{r}
+```{r combinations, fig.height=3, fig.width=5, message=FALSE, warning=FALSE}
 # create a vector with various mean coverages
 mCov <- c(20, 50, 100)
 # create a  vector with the variance of the coverage
