@@ -2,15 +2,15 @@
 % Please edit documentation in R/functions_pool.R
 \name{GetGenotypes}
 \alias{GetGenotypes}
-\title{Create Genotypes from the scrm output}
+\title{Create genotypes from a output with haplotypes}
 \usage{
 GetGenotypes(haplotypes, nDip)
 }
 \arguments{
 \item{haplotypes}{a list of haplotypes obtained from the simulations done
-with scrm. Each entry of the list is a matrix that corresponds to a given
-locus. At each matrix, each column is a different site and each row is a
-different haplotype.}
+with \code{\link[scrm:scrm]{scrm::scrm()}}. Each entry of the list is a matrix that corresponds to
+a given locus. At each matrix, each column is a different site and each row
+is a different haplotype.}
 
 \item{nDip}{an integer representing the total number of diploid individuals
 to simulate. Note that this is the total number of diploid individuals and
@@ -23,7 +23,8 @@ site and each row is a different genotype
 }
 \description{
 This function applies the \code{\link{hap2geno}} function to all entries of a
-list. Each entry of that list is a different locus simulated with scrm. Thus,
-this function converts the haplotypes of all simulated loci into genotypes.
+list. Each entry of that list is a different locus simulated with
+\code{\link[scrm:scrm]{scrm::scrm()}}. Thus, this function converts the haplotypes of all simulated
+loci into genotypes.
 }
 \keyword{internal}

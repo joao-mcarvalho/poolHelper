@@ -31,7 +31,7 @@ with too few minor-allele reads from both the pool frequencies and
 frequencies computed directly from genotypes.
 }
 \details{
-The frequency at a given SNP is calculated according to: π = c/r, where c =
+The frequency at a given SNP is calculated according to: \code{pi = c/r}, where c =
 number of minor-allele reads and r = total number of observed reads.
 Additionally, if a site has less minor-allele reads than \code{min.minor}
 across all populations, that site is removed from the data.

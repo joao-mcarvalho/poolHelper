@@ -4,8 +4,8 @@
 #' variable theta values.
 #'
 #' @param nDip an integer representing the total number of diploid individuals
-#'   to simulate. Note that scrm actually simulates haplotypes, so the number of
-#'   simulated haplotypes is double of this.
+#'   to simulate. Note that [scrm::scrm()] actually simulates haplotypes, so the
+#'   number of simulated haplotypes is double of this.
 #' @param nloci is an integer that represents how many independent loci should
 #'   be simulated.
 #' @param theta a value for the mutation rate assuming theta = 4Nu, where u is
@@ -68,8 +68,8 @@ changeFreqs <- function(freqs) {
 #' number of alternative alleles by the total number of gene copies.
 #'
 #' @param nDip an integer representing the total number of diploid individuals
-#'   to simulate. Note that scrm actually simulates haplotypes, so the number of
-#'   simulated haplotypes is double of this.
+#'   to simulate. Note that [scrm::scrm()] actually simulates haplotypes, so the
+#'   number of simulated haplotypes is double of this.
 #' @param genotypes a list of simulated genotypes, where each entry is a matrix
 #'   corresponding to a different locus. At each matrix, each column is a
 #'   different SNP and each row is a different individual.
@@ -162,7 +162,7 @@ removeSites <- function(freqs, minor, coverage, min.minor) {
 #' with too few minor-allele reads from both the pool frequencies and
 #' frequencies computed directly from genotypes.
 #'
-#' The frequency at a given SNP is calculated according to: π = c/r, where c =
+#' The frequency at a given SNP is calculated according to: `pi = c/r`, where c =
 #' number of minor-allele reads and r = total number of observed reads.
 #' Additionally, if a site has less minor-allele reads than \code{min.minor}
 #' across all populations, that site is removed from the data.
@@ -218,8 +218,8 @@ Pfreqs <- function(minor, coverage, min.minor, ifreqs) {
 #' pooled data as the \code{predicted} input argument.
 #'
 #' @param nDip an integer representing the total number of diploid individuals
-#'   to simulate. Note that scrm actually simulates haplotypes, so the number of
-#'   simulated haplotypes is double of this.
+#'   to simulate. Note that [scrm::scrm()] actually simulates haplotypes, so the
+#'   number of simulated haplotypes is double of this.
 #' @param nloci is an integer that represents how many independent loci should
 #'   be simulated.
 #' @param pools a list with a vector containing the size (in number of diploid
@@ -342,11 +342,11 @@ maePool <- function(nDip, nloci, pools, pError, sError, mCov, vCov, min.minor) {
 #' size \code{nDip} was used to sequence the population.
 #'
 #' @param nDip is an integer or a vector representing the total number of
-#'   diploid individuals to simulate. Note that scrm actually simulates
-#'   haplotypes, so the number of simulated haplotypes is double of this. If it
-#'   is a vector, then each vector entry will be simulated independently. For
-#'   instance, if \code{nDip = c(100, 200)}, simulations will be carried out for
-#'   samples of 100 and 200 individuals.
+#'   diploid individuals to simulate. Note that [scrm::scrm()] actually
+#'   simulates haplotypes, so the number of simulated haplotypes is double of
+#'   this. If it is a vector, then each vector entry will be simulated
+#'   independently. For instance, if \code{nDip = c(100, 200)}, simulations will
+#'   be carried out for samples of 100 and 200 individuals.
 #' @param nloci is an integer that represents how many independent loci should
 #'   be simulated.
 #' @param pError an integer or a vector representing the value of the error
@@ -431,17 +431,17 @@ maeFreqs <- function(nDip, nloci, pError, sError, mCov, vCov, min.minor) {
 }
 
 
-#' Create invariable sites on the scrm output
+#' Create invariable sites
 #'
-#' This function applies a correction for the situations where scrm does not
-#' produce a single polymorphic site for a given locus. In this situation, two
-#' artificial sites are created at that locus. All individuals are assumed to be
-#' homozygous for the reference allele at those sites.
+#' This function applies a correction for the situations where [scrm::scrm()]
+#' does not produce a single polymorphic site for a given locus. In this
+#' situation, two artificial sites are created at that locus. All individuals
+#' are assumed to be homozygous for the reference allele at those sites.
 #'
 #' @param haplotypes a list of haplotypes obtained from the simulations done
-#'   with scrm. Each entry of the list is a matrix that corresponds to a given
-#'   locus. At each matrix, each column is a different site and each row is a
-#'   different haplotype.
+#'   with [scrm::scrm()]. Each entry of the list is a matrix that corresponds to
+#'   a given locus. At each matrix, each column is a different site and each row
+#'   is a different haplotype.
 #' @param nHap an integer representing the total number of haplotypes simulated.
 #'
 #' @return a list of haplotypes identical to `haplotypes`, but without empty
@@ -481,14 +481,15 @@ haplo.fix <- function(haplotypes, nHap) {
 }
 
 
-#' Convert Haplotypes to Genotypes
+#' Convert haplotypes to genotypes
 #'
-#' This function converts haplotypes simulated with scrm into genotypes by
-#' adding the entries on one row with the entries of the subsequent row.
+#' This function converts haplotypes simulated with [scrm::scrm()] into
+#' genotypes by adding the entries on one row with the entries of the subsequent
+#' row.
 #'
 #' @param haplo a matrix of haplotypes obtained from the simulations done with
-#'   scrm. Each column of the matrix is a different site and each row is a
-#'   different haplotype.
+#'   [scrm::scrm()]. Each column of the matrix is a different site and each row
+#'   is a different haplotype.
 #'
 #' @return a matrix of genotypes with half the rows of the `haplo` matrix. Each
 #'   column of this matrix is a different site and each row is a different
@@ -506,16 +507,17 @@ hap2geno <- function(haplo) {
 }
 
 
-#' Create Genotypes from the scrm output
+#' Create genotypes from a output with haplotypes
 #'
 #' This function applies the \code{\link{hap2geno}} function to all entries of a
-#' list. Each entry of that list is a different locus simulated with scrm. Thus,
-#' this function converts the haplotypes of all simulated loci into genotypes.
+#' list. Each entry of that list is a different locus simulated with
+#' [scrm::scrm()]. Thus, this function converts the haplotypes of all simulated
+#' loci into genotypes.
 #'
 #' @param haplotypes a list of haplotypes obtained from the simulations done
-#'   with scrm. Each entry of the list is a matrix that corresponds to a given
-#'   locus. At each matrix, each column is a different site and each row is a
-#'   different haplotype.
+#'   with [scrm::scrm()]. Each entry of the list is a matrix that corresponds to
+#'   a given locus. At each matrix, each column is a different site and each row
+#'   is a different haplotype.
 #' @param nDip an integer representing the total number of diploid individuals
 #'   to simulate. Note that this is the total number of diploid individuals and
 #'   not the number of individuals per population.
@@ -740,7 +742,7 @@ remove_by_reads_matrix <- function(reads, minimum, maximum, genotypes = NA) {
 remove_by_reads <- function(nLoci, reads, minimum, maximum, genotypes = NA) {
 
   # check if the input is correct - reads should always be supplied as a list
-  if(class(reads) != "list")
+  if(!inherits(reads, "list"))
     stop(paste("reads should be supplied on a list format, with each entry corresponding to a locus. Please check"))
 
   # this applies the remove_by_reads_matrix function to all the list entries - i.e. to all the different loci
@@ -769,8 +771,9 @@ remove_by_reads <- function(nLoci, reads, minimum, maximum, genotypes = NA) {
 #'
 #' The alpha value corresponds to the vector of shape parameters of the
 #' Dirichlet distribution. When the alpha is very small, the random generation
-#' of numbers from the Dirichlet distribution produces NaN. Thus, this function
-#' replaces small values of alpha with a minimum threshold value to avoid that.
+#' of numbers from the Dirichlet distribution produces `NaN`. Thus, this
+#' function replaces small values of alpha with a minimum threshold value to
+#' avoid that.
 #'
 #' @param alpha_i is a vector of shape parameters for the Dirichlet
 #'   distribution.
@@ -828,7 +831,7 @@ poolProbs <- function(nPools, vector_np, nSNPs, pError) {
 
   # check if we are dealing with a single population - this function should be used on a single population
   # also check if the input is on the correct format
-  if(class(vector_np) != "numeric" | length(vector_np) == 1)
+  if(!inherits(vector_np, "numeric") | length(vector_np) == 1)
     stop(paste("The vector_np input should be a vector. It should also contain more than one entry. Please check"))
 
   # check if we are dealing with a single population - this function should be used on a single population
@@ -1056,7 +1059,7 @@ indReads <- function(np, coverage, probs) {
 popReads <- function(vector_np, coverage, pError) {
 
   # when the coverage input is a list, convert it to a vector
-  if(class(coverage) == "list")
+  if(inherits(coverage, "list"))
     coverage <- unlist(coverage)
 
   # get the number of diploid individuals
@@ -1215,7 +1218,7 @@ popsReads <- function(list_np, coverage, pError) {
 splitMatrix <- function(matrix, size) {
 
   # general check to see if the input is correctly supplied
-  if(class(size) != "list")
+  if(!inherits(size, "list"))
     stop(paste("The size input should be a list. Please check"))
 
   # get the number of populations - it's the number of entries in the size input
@@ -1392,7 +1395,7 @@ computeReference <- function(genotypes, indContribution, error) {
 #' @export
 numberReference <- function(genotypes, indContribution, error) {
 
-  if(class(genotypes) != "list")
+  if(!inherits(genotypes, "list"))
     stop(paste("The genotypes input should be on a list format. Please check"))
 
   if(any(class(indContribution) != "list"))
@@ -1713,8 +1716,8 @@ minorPool <- function(reference, alternative, coverage, min.minor = NA) {
 
 #' Calculate population frequency at each SNP
 #'
-#' The frequency at a given SNP is calculated according to: π = c/r, where c =
-#' number of minor-allele reads and r = total number of observed reads.
+#' The frequency at a given SNP is calculated according to: `pi = c/r`, where c
+#' = number of minor-allele reads and r = total number of observed reads.
 #'
 #' This function takes as input a list that contains the number of reads with
 #' the minor allele and the number of total reads per population at a given
@@ -1781,7 +1784,7 @@ calculatePi <- function(listPool, nLoci) {
 
   # it is possible that each entry of the list is a single matrix - particularly when dealing with a single locus
   # if this is the case, then this step will convert those entries into lists
-  if(any(lapply(listPool, class) == "matrix") == TRUE)
+  if(any(sapply(listPool, class) == "matrix") == TRUE)
     listPool <- lapply(listPool, list)
 
   # by doing that transformation, we can use an lapply, whether we have one locus or multiple loci

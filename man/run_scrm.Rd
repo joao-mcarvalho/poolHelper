@@ -8,8 +8,8 @@ run_scrm(nDip, nloci, theta = 10)
 }
 \arguments{
 \item{nDip}{an integer representing the total number of diploid individuals
-to simulate. Note that scrm actually simulates haplotypes, so the number of
-simulated haplotypes is double of this.}
+to simulate. Note that \code{\link[scrm:scrm]{scrm::scrm()}} actually simulates haplotypes, so the
+number of simulated haplotypes is double of this.}
 
 \item{nloci}{is an integer that represents how many independent loci should
 be simulated.}

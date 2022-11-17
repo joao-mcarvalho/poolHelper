@@ -9,11 +9,11 @@ maeFreqs(nDip, nloci, pError, sError, mCov, vCov, min.minor)
 }
 \arguments{
 \item{nDip}{is an integer or a vector representing the total number of
-diploid individuals to simulate. Note that scrm actually simulates
-haplotypes, so the number of simulated haplotypes is double of this. If it
-is a vector, then each vector entry will be simulated independently. For
-instance, if \code{nDip = c(100, 200)}, simulations will be carried out for
-samples of 100 and 200 individuals.}
+diploid individuals to simulate. Note that \code{\link[scrm:scrm]{scrm::scrm()}} actually
+simulates haplotypes, so the number of simulated haplotypes is double of
+this. If it is a vector, then each vector entry will be simulated
+independently. For instance, if \code{nDip = c(100, 200)}, simulations will
+be carried out for samples of 100 and 200 individuals.}
 
 \item{nloci}{is an integer that represents how many independent loci should
 be simulated.}

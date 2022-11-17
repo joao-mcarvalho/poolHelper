@@ -28,8 +28,8 @@ This list is similar to the one obtained with the \code{\link{minorPool}}
 function.}
 }
 \description{
-The frequency at a given SNP is calculated according to: π = c/r, where c =
-number of minor-allele reads and r = total number of observed reads.
+The frequency at a given SNP is calculated according to: \code{pi = c/r}, where c
+= number of minor-allele reads and r = total number of observed reads.
 }
 \details{
 This function takes as input a list that contains the number of reads with

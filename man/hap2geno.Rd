@@ -2,14 +2,14 @@
 % Please edit documentation in R/functions_pool.R
 \name{hap2geno}
 \alias{hap2geno}
-\title{Convert Haplotypes to Genotypes}
+\title{Convert haplotypes to genotypes}
 \usage{
 hap2geno(haplo)
 }
 \arguments{
 \item{haplo}{a matrix of haplotypes obtained from the simulations done with
-scrm. Each column of the matrix is a different site and each row is a
-different haplotype.}
+\code{\link[scrm:scrm]{scrm::scrm()}}. Each column of the matrix is a different site and each row
+is a different haplotype.}
 }
 \value{
 a matrix of genotypes with half the rows of the \code{haplo} matrix. Each
@@ -17,7 +17,8 @@ column of this matrix is a different site and each row is a different
 genotype.
 }
 \description{
-This function converts haplotypes simulated with scrm into genotypes by
-adding the entries on one row with the entries of the subsequent row.
+This function converts haplotypes simulated with \code{\link[scrm:scrm]{scrm::scrm()}} into
+genotypes by adding the entries on one row with the entries of the subsequent
+row.
 }
 \keyword{internal}

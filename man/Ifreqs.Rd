@@ -8,8 +8,8 @@ Ifreqs(nDip, genotypes)
 }
 \arguments{
 \item{nDip}{an integer representing the total number of diploid individuals
-to simulate. Note that scrm actually simulates haplotypes, so the number of
-simulated haplotypes is double of this.}
+to simulate. Note that \code{\link[scrm:scrm]{scrm::scrm()}} actually simulates haplotypes, so the
+number of simulated haplotypes is double of this.}
 
 \item{genotypes}{a list of simulated genotypes, where each entry is a matrix
 corresponding to a different locus. At each matrix, each column is a

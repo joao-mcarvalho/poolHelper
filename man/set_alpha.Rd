@@ -21,7 +21,8 @@ simulate the probability of contribution of different pools and individuals.
 \details{
 The alpha value corresponds to the vector of shape parameters of the
 Dirichlet distribution. When the alpha is very small, the random generation
-of numbers from the Dirichlet distribution produces NaN. Thus, this function
-replaces small values of alpha with a minimum threshold value to avoid that.
+of numbers from the Dirichlet distribution produces \code{NaN}. Thus, this
+function replaces small values of alpha with a minimum threshold value to
+avoid that.
 }
 \keyword{internal}
