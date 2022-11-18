@@ -16,11 +16,11 @@ vector is the mean for a different population.}
 across all sites. If a vector is supplied instead, the function assumes
 that each entry of the vector is the variance for a different population.}
 
-\item{nSNPs}{An integer representing the number of polymorphic sites per
+\item{nSNPs}{an integer representing the number of polymorphic sites per
 locus to simulate. This is an optional input but either this or the
 \code{genotypes} list must be supplied.}
 
-\item{nLoci}{An optional integer that represents how many independent loci
+\item{nLoci}{an optional integer that represents how many independent loci
 should be simulated.}
 
 \item{genotypes}{a list of simulated genotypes, where each entry is a matrix

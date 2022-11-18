@@ -540,6 +540,76 @@ GetGenotypes <- function(haplotypes, nDip) {
 }
 
 
+#' Simulate coverage at a single locus
+#'
+#' Simulates the total number of reads, for each polymorphic site of a given
+#' locus using a negative binomial distribution.
+#'
+#' The total number of reads is simulated with a negative binomial and according
+#' to a user-defined mean depth of coverage and variance. This function is
+#' intended to work with a matrix of genotypes, simulating the depth of coverage
+#' for each site present in the genotypes. However, it can also be used to
+#' simulate coverage distributions independent of genotypes, by choosing how
+#' many sites should be simulated (with the `nSNPs` option).
+#'
+#' @param mean an integer that defines the mean depth of coverage to simulate.
+#'   Please note that this represents the mean coverage across all sites. If a
+#'   vector is supplied instead, the function assumes that each entry of the
+#'   vector is the mean for a different population.
+#' @param variance an integer that defines the variance of the depth of coverage
+#'   across all sites. If a vector is supplied instead, the function assumes
+#'   that each entry of the vector is the variance for a different population.
+#' @param nSNPs an integer representing the number of polymorphic sites per
+#'   locus to simulate. This is an optional input but either this or the
+#'   `genotypes` matrix must be supplied.
+#' @param genotypes a matrix of simulated genotypes, where each column is a
+#'   different SNP and each row is a different individual. This is an optional
+#'   input but either this or the `nSNPs` must be supplied.
+#'
+#' @return a matrix with the total coverage per population and per site.
+#'   Different rows represent different populations and each column is a
+#'   different site.
+#'
+#' @examples
+#' # coverage for one population at 10 sites
+#' simReads(mean = 20, variance = 100, nSNPs = 10)
+#'
+#' # simulate coverage at one locus with 10 SNPs for two populations:
+#' # the first with 100x and the second with 50x
+#' simReads(mean = c(100, 50), variance = c(250, 150), nSNPs = 10)
+#'
+#' @export
+simReads <- function(mean, variance, nSNPs = NA, genotypes = NA) {
+
+  # check if either the number of SNPs or the genotypes were supplied as input
+  if(all(is.na(nSNPs), is.na(genotypes)))
+    stop("You should define the number of SNPs to simulate or supply a matrix of genotypes. Please check")
+
+  # check if the variance and mean are reasonable
+  if(any(variance - mean > 0) == FALSE)
+    stop("Error: variance equal to mean, or variance smaller than mean")
+
+  # if genotypes are supplied as input argument, assume that the number of SNPs
+  # is equal to the number of columns of the genotypes matrix
+  if(!all(is.na(genotypes)))
+    nSNPs <- ncol(genotypes)
+
+  # calculate the parameters for the negative binomial
+  pnb <- mean/variance
+  rnb <- (mean^2)/(variance - mean)
+
+  # use a negative binomial to draw random values, per site and per population, for the total number of observed reads
+  readnumbers <- t(mapply(FUN = function(size, prob) stats::rnbinom(n = nSNPs, size = size, prob = prob), rnb, pnb))
+
+  # if there is only a single SNP - we need to transpose the previous result to get each population in a different row
+  if(nSNPs == 1)
+    readnumbers <- t(readnumbers)
+
+  # get the output - number of reads per site and per population
+  readnumbers
+}
+
+
 #' Simulate total number of reads per site
 #'
 #' This function simulates the total number of reads, for each polymorphic site
@@ -564,10 +634,10 @@ GetGenotypes <- function(haplotypes, nDip) {
 #'   corresponding to a different locus. At each matrix, each column is a
 #'   different SNP and each row is a different individual. This is an optional
 #'   input but either this or the `nSNPs` must be supplied.
-#' @param nSNPs An integer representing the number of polymorphic sites per
+#' @param nSNPs an integer representing the number of polymorphic sites per
 #'   locus to simulate. This is an optional input but either this or the
 #'   `genotypes` list must be supplied.
-#' @param nLoci An optional integer that represents how many independent loci
+#' @param nLoci an optional integer that represents how many independent loci
 #'   should be simulated.
 #'
 #' @return a list with the total coverage per population and per site. Each list
@@ -596,25 +666,16 @@ simulateCoverage <- function(mean, variance, nSNPs = NA, nLoci = NA, genotypes =
   if(all(is.na(nSNPs), is.na(genotypes)))
     stop("You should define the number of SNPs to simulate or supply a list of genotypes. Please check")
 
-  # check if the variance and mean are reasonable
-  if(any(variance - mean > 0) == FALSE)
-    stop("Error: variance equal to mean, or variance smaller than mean.")
-
-  # calculate the parameters for the negative binomial
-  pnb <- mean/variance
-  rnb <- (mean^2)/(variance - mean)
-
   # if the genotypes are supplied as input to the function
   if(!all(is.na(genotypes))) {
 
     # check if the input is correct - genotypes should always be supplied as a list
     if(any(class(genotypes) != "list"))
-      stop(paste("Genotypes should be supplied on a list format, with each entry corresponding to a locus. Please check"))
+      stop(paste("genotypes should be supplied on a list format, with each entry corresponding to a locus. Please check"))
 
     # use a negative binomial to draw random values, per site and per population, for the total number of observed reads
     # this outputs a list where each entry corresponds to a locus
-    readnumbers <- lapply(genotypes, FUN = function(geno)
-      t(mapply(FUN = function(size, prob) stats::rnbinom(n = ncol(geno), size = size, prob = prob), rnb, pnb)))
+    readnumbers <- lapply(genotypes, FUN = function(geno) simReads(mean, variance, genotypes = geno))
 
   } else {
 
@@ -624,8 +685,7 @@ simulateCoverage <- function(mean, variance, nSNPs = NA, nLoci = NA, genotypes =
 
     # use a negative binomial to draw random values, per site and per population, for the total number of observed reads
     # this outputs a list where each entry corresponds to a locus
-    readnumbers <- lapply(1:nLoci, FUN = function(geno)
-      t(mapply(FUN = function(size, prob) stats::rnbinom(n = nSNPs, size = size, prob = prob), rnb, pnb)))
+    readnumbers <- lapply(1:nLoci, FUN = function(geno) simReads(mean, variance, nSNPs))
   }
 
   # get the output - number of reads per site and per population
