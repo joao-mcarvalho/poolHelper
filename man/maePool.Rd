@@ -4,7 +4,18 @@
 \alias{maePool}
 \title{Average absolute difference between allele frequencies}
 \usage{
-maePool(nDip, nloci, pools, pError, sError, mCov, vCov, min.minor)
+maePool(
+  nDip,
+  nloci,
+  pools,
+  pError,
+  sError,
+  mCov,
+  vCov,
+  min.minor,
+  minimum = NA,
+  maximum = NA
+)
 }
 \arguments{
 \item{nDip}{an integer representing the total number of diploid individuals
@@ -40,6 +51,14 @@ across all sites.}
 \item{min.minor}{is an integer representing the minimum allowed number of
 minor-allele reads. Sites that, across all populations, have less
 minor-allele reads than this threshold will be removed from the data.}
+
+\item{minimum}{an optional integer representing the minimum coverage allowed.
+Sites where the population has a depth of coverage below this threshold are
+removed from the data.}
+
+\item{maximum}{an optional integer representing the maximum coverage allowed.
+Sites where the population has a depth of coverage above this threshold are
+removed from the data.}
 }
 \value{
 a data.frame with columns detailing the number of diploid
@@ -67,5 +86,10 @@ mCov = 100, vCov = 250, min.minor = 2)
 # single population sequenced with two pools, each with 50 individuals
 maePool(nDip = 100, nloci = 10, pools = list(c(50, 50)), pError = 100, sError = 0.01,
 mCov = 100, vCov = 250, min.minor = 2)
+
+# single population sequenced with two pools, each with 50 individuals
+# removing sites with coverage below 10x or above 180x
+maePool(nDip = 100, nloci = 10, pools = list(c(50, 50)), pError = 100, sError = 0.01,
+mCov = 100, vCov = 250, min.minor = 2, minimum = 10, maximum = 180)
 
 }

@@ -5,7 +5,17 @@
 \title{Average absolute difference between allele frequencies computed from
 genotypes and from Pool-seq data}
 \usage{
-maeFreqs(nDip, nloci, pError, sError, mCov, vCov, min.minor)
+maeFreqs(
+  nDip,
+  nloci,
+  pError,
+  sError,
+  mCov,
+  vCov,
+  min.minor,
+  minimum = NA,
+  maximum = NA
+)
 }
 \arguments{
 \item{nDip}{is an integer or a vector representing the total number of
@@ -45,6 +55,14 @@ of the \code{mCov} vector.}
 \item{min.minor}{is an integer representing the minimum allowed number of
 minor-allele reads. Sites that, across all populations, have less
 minor-allele reads than this threshold will be removed from the data.}
+
+\item{minimum}{an optional integer representing the minimum coverage allowed.
+Sites where the population has a depth of coverage below this threshold are
+removed from the data.}
+
+\item{maximum}{an optional integer representing the maximum coverage allowed.
+Sites where the population has a depth of coverage above this threshold are
+removed from the data.}
 }
 \value{
 a data.frame with columns detailing the number of diploid

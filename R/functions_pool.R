@@ -243,6 +243,12 @@ Pfreqs <- function(minor, coverage, min.minor, ifreqs) {
 #' @param min.minor is an integer representing the minimum allowed number of
 #'   minor-allele reads. Sites that, across all populations, have less
 #'   minor-allele reads than this threshold will be removed from the data.
+#' @param minimum an optional integer representing the minimum coverage allowed.
+#'   Sites where the population has a depth of coverage below this threshold are
+#'   removed from the data.
+#' @param maximum an optional integer representing the maximum coverage allowed.
+#'   Sites where the population has a depth of coverage above this threshold are
+#'   removed from the data.
 #'
 #' @return a data.frame with columns detailing the number of diploid
 #'   individuals, the pool error, the number of pools, the number of individuals
@@ -259,17 +265,50 @@ Pfreqs <- function(minor, coverage, min.minor, ifreqs) {
 #' maePool(nDip = 100, nloci = 10, pools = list(c(50, 50)), pError = 100, sError = 0.01,
 #' mCov = 100, vCov = 250, min.minor = 2)
 #'
+#' # single population sequenced with two pools, each with 50 individuals
+#' # removing sites with coverage below 10x or above 180x
+#' maePool(nDip = 100, nloci = 10, pools = list(c(50, 50)), pError = 100, sError = 0.01,
+#' mCov = 100, vCov = 250, min.minor = 2, minimum = 10, maximum = 180)
+#'
 #' @export
-maePool <- function(nDip, nloci, pools, pError, sError, mCov, vCov, min.minor) {
+maePool <- function(nDip, nloci, pools, pError, sError, mCov, vCov, min.minor, minimum = NA, maximum = NA) {
 
   # run SCRM and obtain genotypes for a single population
   genotypes <- run_scrm(nDip = nDip, nloci = nloci)
 
-  # compute allele frequencies directly from the genotypes
-  ifreqs <- Ifreqs(nDip = nDip, genotypes = genotypes)
-
   # simulate number of reads
   reads <- simulateCoverage(mean = mCov, variance = vCov, genotypes = genotypes)
+
+  # if the minimum coverage is defined
+  if(!is.na(minimum)) {
+
+    # check if the maximum coverage is also defined
+    if(is.na(maximum))
+      stop("please define the maximum coverage")
+
+    # remove sites with a depth of coverage above or below the defined threshold
+    reads <- remove_by_reads(nLoci = nloci, reads, minimum = minimum, maximum = maximum, genotypes = genotypes)
+
+    # get the genotypes - without sites simulated with a coverage below or above the threshold
+    genotypes <- lapply(reads, function(locus) locus[[2]])
+
+    # check the dimensions of the matrices with the genotypes
+    dimensions <- matrix(unlist(lapply(genotypes, dim)), ncol = 2, byrow = TRUE)
+    # we only wish to keep the locus where we have at least one polymorphic site
+    tokeep <- dimensions[, 2] != 0
+    # remove all loci without polymorphic sites
+    genotypes <- genotypes[tokeep]
+
+    # get the reads - without sites simulated with a coverage below or above the threshold
+    reads <- lapply(reads, function(locus) locus[[1]])
+    # use the same index to remove entries of the reads list that correspond to locus without polymorphic sites
+    reads <- reads[tokeep]
+    # ensure that each entry is a matrix
+    reads <- lapply(reads, function(locus) matrix(locus, nrow = 1))
+  }
+
+  # compute allele frequencies directly from the genotypes
+  ifreqs <- Ifreqs(nDip = nDip, genotypes = genotypes)
 
   # simulate individual contribution to the total number of reads
   indContribution <- lapply(1:nloci, function(locus)
@@ -372,6 +411,12 @@ maePool <- function(nDip, nloci, pools, pError, sError, mCov, vCov, min.minor) {
 #' @param min.minor is an integer representing the minimum allowed number of
 #'   minor-allele reads. Sites that, across all populations, have less
 #'   minor-allele reads than this threshold will be removed from the data.
+#' @param minimum an optional integer representing the minimum coverage allowed.
+#'   Sites where the population has a depth of coverage below this threshold are
+#'   removed from the data.
+#' @param maximum an optional integer representing the maximum coverage allowed.
+#'   Sites where the population has a depth of coverage above this threshold are
+#'   removed from the data.
 #'
 #' @return a data.frame with columns detailing the number of diploid
 #'   individuals, the pool error, the number of pools, the number of individuals
@@ -393,7 +438,7 @@ maePool <- function(nDip, nloci, pools, pError, sError, mCov, vCov, min.minor) {
 #' mCov = c(100, 200), vCov = c(200, 500), min.minor = 1)
 #'
 #' @export
-maeFreqs <- function(nDip, nloci, pError, sError, mCov, vCov, min.minor) {
+maeFreqs <- function(nDip, nloci, pError, sError, mCov, vCov, min.minor, minimum = NA, maximum = NA) {
 
   # create a matrix to save the values of the mean absolute error for the various conditions
   final <- matrix(data = NA, nrow = 1, ncol = 7)
@@ -418,7 +463,7 @@ maeFreqs <- function(nDip, nloci, pError, sError, mCov, vCov, min.minor) {
 
     # compute the average absolute difference between the allele frequencies from genotypes and from Pool-seq data
     temp <- maePool(nDip = dip, nloci = nloci, pError = pError, pools = list(dip), sError = sError, mCov = meanCov,
-                    vCov = varCov, min.minor = min.minor)
+                    vCov = varCov, min.minor = min.minor, minimum = minimum, maximum = maximum)
 
     # add those values to the dataframe containing all the results
     final <- rbind(final, temp)
