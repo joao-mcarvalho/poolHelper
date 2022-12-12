@@ -476,6 +476,356 @@ maeFreqs <- function(nDip, nloci, pError, sError, mCov, vCov, min.minor, minimum
 }
 
 
+#' Compute expected heterozygosity per site
+#'
+#' Computes the expected heterozygosity for a given site.
+#'
+#' @param geno_site is a vector where each entry contains the genotype for a
+#'   single individual, coded as 0,1,2 and using NA for the missing data.
+#'
+#' @return a numerical value corresponding to the expected heterozygosity at
+#'   that site.
+#'
+#' @keywords internal
+#'
+#' @export
+ExpHet_site <- function(geno_site) {
+
+  # get the number of individuals with data
+  ngenecopies <- 2*sum(!is.na(geno_site))
+
+  # get the frequency of the alternative allele
+  freq <- sum(geno_site, na.rm = T)/ngenecopies
+
+  # compute the expected heterozygosity
+  he <- (ngenecopies/(ngenecopies-1))*2*freq*(1-freq)
+
+  # output the expected heterozygosity
+  he
+}
+
+
+#' Compute expected heterozygosity within a population
+#'
+#' This functions calculates the value of the expected heterozygosity for each
+#' SNP.
+#'
+#' @param Pop_Pi is a matrix or list of allele frequencies. When dealing with a
+#'   single locus, this input is a matrix and when dealing with multiple loci it
+#'   is a list. Each entry of that list is a matrix representing a different
+#'   locus. Each row of that matrix should correspond to a different population
+#'   and each column to a different SNP.
+#'
+#' @return if the input is a single matrix, the output will be a matrix where
+#'   each row represents a different population and each column is the expected
+#'   heterozygosity of a population at that site. If the input is a list, the
+#'   output will also be a list, with each entry corresponding to a different
+#'   locus. Each of those entries will be a matrix with different populations in
+#'   different rows and the expected heterozygosity of different sites at
+#'   different columns.
+#'
+#' @keywords internal
+#'
+#' @export
+Expected_Het <- function(Pop_Pi) {
+
+  # dealing with a single matrix of population allelic frequencies - a single locus or simulation
+  if(class(Pop_Pi)[1] == "matrix") {
+
+    # compute the expected heterozygosity for a site - this code goes across all sites
+    het <- apply(Pop_Pi, c(1,2), function (frequency) 2*frequency*(1 - frequency))
+
+  } else { # dealing with more than one locus or simulation
+
+    het <- lapply (Pop_Pi, FUN = function(x) {
+      apply(x, c(1,2), function (frequency) 2*frequency*(1 - frequency))})
+  }
+
+  # output the expected heterozygosity
+  het
+}
+
+
+#' Average absolute difference between expected heterozygosity
+#'
+#' Calculates the average absolute difference between the expected
+#' heterozygosity computed directly from genotypes and from pooled sequencing
+#' data.
+#'
+#' Different combinations of parameters can be tested to check the effect of the
+#' various parameters. The average absolute difference is computed with the
+#' \link[Metrics]{mae} function, assuming the expected heterozygosity computed
+#' directly from the genotypes as the \code{actual} input argument and the
+#' expected heterozygosity from pooled data as the \code{predicted} input
+#' argument.
+#'
+#' @param nDip an integer representing the total number of diploid individuals
+#'   to simulate. Note that [scrm::scrm()] actually simulates haplotypes, so the
+#'   number of simulated haplotypes is double of this.
+#' @param nloci is an integer that represents how many independent loci should
+#'   be simulated.
+#' @param pools a list with a vector containing the size (in number of diploid
+#'   individuals) of each pool. Thus, if a population was sequenced using a
+#'   single pool, the vector should contain only one entry. If a population was
+#'   sequenced using two pools, each with 10 individuals, this vector should
+#'   contain two entries and both will be 10.
+#' @param pError an integer representing the value of the error associated with
+#'   DNA pooling. This value is related with the unequal contribution of both
+#'   individuals and pools towards the total number of reads observed for a
+#'   given population - the higher the value the more unequal are the individual
+#'   and pool contributions.
+#' @param sError a numeric value with error rate associated with the sequencing
+#'   and mapping process. This error rate is assumed to be symmetric:
+#'   error(reference -> alternative) = error(alternative -> reference). This
+#'   number should be between 0 and 1.
+#' @param mCov an integer that defines the mean depth of coverage to simulate.
+#'   Please note that this represents the mean coverage across all sites.
+#' @param vCov an integer that defines the variance of the depth of coverage
+#'   across all sites.
+#' @param min.minor is an integer representing the minimum allowed number of
+#'   minor-allele reads. Sites that, across all populations, have less
+#'   minor-allele reads than this threshold will be removed from the data.
+#' @param minimum an optional integer representing the minimum coverage allowed.
+#'   Sites where the population has a depth of coverage below this threshold are
+#'   removed from the data.
+#' @param maximum an optional integer representing the maximum coverage allowed.
+#'   Sites where the population has a depth of coverage above this threshold are
+#'   removed from the data.
+#'
+#' @return a data.frame with columns detailing the number of diploid
+#'   individuals, the pool error, the number of pools, the number of individuals
+#'   per pool, the mean coverage, the variance of the coverage and the average
+#'   absolute difference between the expected heterozygosity computed from
+#'   genotypes and from pooled data.
+#'
+#' @examples
+#' # single population sequenced with a single pool of 100 individuals
+#' errorHet(nDip = 100, nloci = 10, pools = list(100), pError = 100, sError = 0.01,
+#' mCov = 100, vCov = 250, min.minor = 2)
+#'
+#' # single population sequenced with two pools, each with 50 individuals
+#' errorHet(nDip = 100, nloci = 10, pools = list(c(50, 50)), pError = 100, sError = 0.01,
+#' mCov = 100, vCov = 250, min.minor = 2)
+#'
+#' # single population sequenced with two pools, each with 50 individuals
+#' # removing sites with coverage below 10x or above 180x
+#' errorHet(nDip = 100, nloci = 10, pools = list(c(50, 50)), pError = 100, sError = 0.01,
+#' mCov = 100, vCov = 250, min.minor = 2, minimum = 10, maximum = 180)
+#'
+#' @export
+errorHet <- function(nDip, nloci, pools, pError, sError, mCov, vCov, min.minor, minimum = NA, maximum = NA) {
+
+  # run SCRM and obtain genotypes for a single population
+  genotypes <- run_scrm(nDip = nDip, nloci = nloci)
+
+  # simulate number of reads
+  reads <- simulateCoverage(mean = mCov, variance = vCov, genotypes = genotypes)
+
+  # if the minimum coverage is defined
+  if(!is.na(minimum)) {
+
+    # check if the maximum coverage is also defined
+    if(is.na(maximum))
+      stop("please define the maximum coverage")
+
+    # remove sites with a depth of coverage above or below the defined threshold
+    reads <- remove_by_reads(nLoci = nloci, reads, minimum = minimum, maximum = maximum, genotypes = genotypes)
+
+    # get the genotypes - without sites simulated with a coverage below or above the threshold
+    genotypes <- lapply(reads, function(locus) locus[[2]])
+
+    # check the dimensions of the matrices with the genotypes
+    dimensions <- matrix(unlist(lapply(genotypes, dim)), ncol = 2, byrow = TRUE)
+    # we only wish to keep the locus where we have at least one polymorphic site
+    tokeep <- dimensions[, 2] != 0
+    # remove all loci without polymorphic sites
+    genotypes <- genotypes[tokeep]
+
+    # get the reads - without sites simulated with a coverage below or above the threshold
+    reads <- lapply(reads, function(locus) locus[[1]])
+    # use the same index to remove entries of the reads list that correspond to locus without polymorphic sites
+    reads <- reads[tokeep]
+    # ensure that each entry is a matrix
+    reads <- lapply(reads, function(locus) matrix(locus, nrow = 1))
+  }
+
+  # compute the expected heterozygosity directly from genotypes
+  indHets <- lapply(genotypes, function(locus) apply(X = locus, MARGIN = 2, FUN = function(site)
+    ExpHet_site(geno_site = site)))
+
+  # simulate individual contribution to the total number of reads
+  indContribution <- lapply(1:nloci, function(locus)
+    popsReads(list_np = pools, coverage = reads[[locus]], pError = pError))
+
+  # simulate the number of Ancestral reads
+  reference <- lapply(1:nloci, function(locus)
+    numberReferencePop(genotypes = genotypes[[locus]], indContribution = indContribution[[locus]],
+                       size = pools, error = sError))
+
+  # simulate pooled sequencing data
+  pool <- poolPops(nPops = 1, nLoci = nloci, indContribution = indContribution, readsReference = reference)
+
+  # use an lapply to ensure that the ancestral allele of the simulations is also the major allele - do this for each locus
+  pool <- lapply(1:nloci, function(locus)
+    minorPool(reference = pool[["reference"]][[locus]], alternative = pool[["alternative"]][[locus]],
+              coverage = pool[["total"]][[locus]]))
+
+  # convert the pool list back to the previous format
+  # one entry for ancestral matrices, one for derived and a final one for total matrices
+  pool <- list(major = lapply(pool, function(locus) locus[["major"]]),
+               minor = lapply(pool, function(locus) locus[["minor"]]),
+               total = lapply(pool, function(locus) locus[["total"]]))
+
+  # compute the allele frequencies obtained with pooled sequencing
+  pfreqs <- lapply(1:nloci, function(locus)
+    Pfreqs(minor = pool[["minor"]][[locus]], coverage = pool[["total"]][[locus]], min.minor = min.minor,
+           ifreqs = indHets[[locus]]))
+
+  # get the allele frequencies computed directly from genotypes after removing sites that did not pass the threshold
+  indHets <- lapply(pfreqs, `[[`, 1)
+  # get the allele frequencies computed from Pool-seq after removing sites that did not pass the threshold
+  pfreqs <- lapply(pfreqs, `[[`, 2)
+
+  # compute the mean expected heterozygosity for each population and locus - using the Pool-seq data
+  poolHets <- Expected_Het(pfreqs)
+
+  # compute the mean absolute error for each locus
+  abs_error <- lapply(1:nloci, function(locus) Metrics::mae(actual = indHets[[locus]], predicted = poolHets[[locus]]))
+  # replace any NaN values with the mean of the remaining values
+  abs_error[is.na(abs_error)] <- mean(unlist(abs_error), na.rm = TRUE)
+
+  # get the number of pools used to sequence a population
+  nPools <- length(pools[[1]])
+  # get the number of individuals per pool
+  indsPool <- unique(pools[[1]])
+
+  # create a dataframe with the values for this particular combination of parameters
+  out <- data.frame(nDip=nDip, PoolError=pError, nPools=nPools, indsPool=indsPool, mean=mCov, var=vCov,
+                    absError=unlist(abs_error))
+
+  # output the results of the function
+  out
+}
+
+
+#' Average absolute difference between the expected heterozygosity computed from
+#' genotypes and from Pool-seq data
+#'
+#' Calculates the average absolute difference between the expected
+#' heterozygosity computed directly from genotypes and from pooled sequencing
+#' data.
+#'
+#' The average absolute difference is computed with the \link[Metrics]{mae}
+#' function, assuming the expected heterozygosity computed directly from the
+#' genotypes as the \code{actual} input argument and the expected heterozygosity
+#' from pooled data as the \code{predicted} input argument.
+#'
+#' Note that this functions allows for different combinations of parameters.
+#' Thus, the effect of different combinations of parameters on the average
+#' absolute difference can be tested. For instance, it is possible to check what
+#' is the effect of different coverages by including more than one value in the
+#' \code{mCov} input argument. This function will run and compute the average
+#' absolute difference for all combinations of the \code{nDip}, \code{pError}
+#' and \code{mCov} input arguments. This function assumes that a single pool of
+#' size \code{nDip} was used to sequence the population.
+#'
+#' @param nDip is an integer or a vector representing the total number of
+#'   diploid individuals to simulate. Note that [scrm::scrm()] actually
+#'   simulates haplotypes, so the number of simulated haplotypes is double of
+#'   this. If it is a vector, then each vector entry will be simulated
+#'   independently. For instance, if \code{nDip = c(100, 200)}, simulations will
+#'   be carried out for samples of 100 and 200 individuals.
+#' @param nloci is an integer that represents how many independent loci should
+#'   be simulated.
+#' @param pError an integer or a vector representing the value of the error
+#'   associated with DNA pooling. This value is related with the unequal
+#'   contribution of both individuals and pools towards the total number of
+#'   reads observed for a given population - the higher the value the more
+#'   unequal are the individual and pool contributions. If it is a vector, then
+#'   each vector entry will be simulated independently.
+#' @param sError a numeric value with error rate associated with the sequencing
+#'   and mapping process. This error rate is assumed to be symmetric:
+#'   error(reference -> alternative) = error(alternative -> reference). This
+#'   number should be between 0 and 1.
+#' @param mCov an integer or a vector that defines the mean depth of coverage to
+#'   simulate. Please note that this represents the mean coverage across all
+#'   sites. If it is a vector, then each vector entry will be simulated
+#'   independently.
+#' @param vCov an integer or a vector that defines the variance of the depth of
+#'   coverage across all sites. If the \code{mCov} is a vector, then \code{vCov}
+#'   should also be a vector, with each entry corresponding to the variance of
+#'   the respective entry in the \code{mCov} vector. Thus, the first entry of
+#'   the \code{vCov} vector will be the variance associated with the first entry
+#'   of the \code{mCov} vector.
+#' @param min.minor is an integer representing the minimum allowed number of
+#'   minor-allele reads. Sites that, across all populations, have less
+#'   minor-allele reads than this threshold will be removed from the data.
+#' @param minimum an optional integer representing the minimum coverage allowed.
+#'   Sites where the population has a depth of coverage below this threshold are
+#'   removed from the data.
+#' @param maximum an optional integer representing the maximum coverage allowed.
+#'   Sites where the population has a depth of coverage above this threshold are
+#'   removed from the data.
+#'
+#' @return a data.frame with columns detailing the number of diploid
+#'   individuals, the pool error, the number of pools, the number of individuals
+#'   per pool, the mean coverage, the variance of the coverage and the average
+#'   absolute difference between the expected heterozygosity computed from
+#'   genotypes and from pooled data.
+#'
+#' @examples
+#' # a simple test with a simple combination of parameters
+#' maeHet(nDip = 100, nloci = 10, pError = 100, sError = 0.01, mCov = 100, vCov = 200, min.minor = 1)
+#'
+#' # effect of two different pool error values in conjugation with a fixed coverage and pool size
+#' maeHet(nDip = 100, nloci = 10, pError = c(100, 200), sError = 0.01,
+#' mCov = 100, vCov = 200, min.minor = 1)
+#'
+#' # effect of two different pool error values in conjugation with a fixed pool size
+#' # and two different coverages
+#' maeHet(nDip = 100, nloci = 10, pError = c(100, 200), sError = 0.01,
+#' mCov = c(100, 200), vCov = c(200, 500), min.minor = 1)
+#'
+#' @export
+maeHet <- function(nDip, nloci, pError, sError, mCov, vCov, min.minor, minimum = NA, maximum = NA) {
+
+  # create a matrix to save the values of the mean absolute error for the various conditions
+  final <- matrix(data = NA, nrow = 1, ncol = 7)
+  # add names to the columns of the matrix
+  colnames(final) <- c("nDip", "PoolError", "nPools", "indsPool", "mean", "var", "absError")
+
+  # create a matrix containing all combinations of factor variables
+  # each row will contain one combination of number of diploids, pool error and mean depth of coverage
+  combinations <- expand.grid(nDip, pError, mCov, stringsAsFactors = FALSE)
+
+  # do a loop over all the possible combinations
+  for (i in 1:nrow(combinations)) {
+
+    # get the number of diploid individuals for this combination
+    dip <- combinations[i, 1]
+    # get the pooling error for this combination
+    pError <- combinations[i, 2]
+    # get the mean depth of coverage for this combination
+    meanCov <- combinations[i, 3]
+    # get the variance of the depth of coverage associated with that particular mean coverage
+    varCov <- vCov[which(mCov == combinations[i, 3])]
+
+    # compute the average absolute difference between the allele frequencies from genotypes and from Pool-seq data
+    temp <- errorHet(nDip = dip, nloci = nloci, pError = pError, pools = list(dip), sError = sError, mCov = meanCov,
+                     vCov = varCov, min.minor = min.minor, minimum = minimum, maximum = maximum)
+
+    # add those values to the dataframe containing all the results
+    final <- rbind(final, temp)
+  }
+
+  # remove the first row of the final matrix - this row contains NAs
+  final <- final[-1 ,]
+
+  # output the final dataframe with the MAE values for the different parameter combinations
+  final
+}
+
+
 #' Create invariable sites
 #'
 #' This function applies a correction for the situations where [scrm::scrm()]
