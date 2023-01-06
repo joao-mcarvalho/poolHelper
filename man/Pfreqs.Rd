@@ -4,11 +4,14 @@
 \alias{Pfreqs}
 \title{Compute allele frequencies from pooled sequencing data}
 \usage{
-Pfreqs(minor, coverage, min.minor, ifreqs)
+Pfreqs(reference, alternative, coverage, min.minor, ifreqs)
 }
 \arguments{
-\item{minor}{a matrix with the number of minor-allele reads. Each row should
-be a different population and each column a different site.}
+\item{reference}{a matrix with the number of reference allele reads. Each row
+should be a different population and each column a different site.}
+
+\item{alternative}{a matrix with the number of alternative allele reads. Each
+row should be a different population and each column a different site.}
 
 \item{coverage}{a matrix with the total coverage. Each row should be a
 different population and each column a different site.}
@@ -31,18 +34,25 @@ with too few minor-allele reads from both the pool frequencies and
 frequencies computed directly from genotypes.
 }
 \details{
-The frequency at a given SNP is calculated according to: \code{pi = c/r}, where c =
-number of minor-allele reads and r = total number of observed reads.
+The frequency at a given SNP is calculated according to: \code{pi = c/r}, where c
+= number of minor-allele reads and r = total number of observed reads.
 Additionally, if a site has less minor-allele reads than \code{min.minor}
 across all populations, that site is removed from the data.
 }
 \examples{
 set.seed(10)
+# create a vector of allele frequencies
 freqs <- runif(20)
-freqs <- changeFreqs(freqs)
 set.seed(10)
-minor <- matrix(sample(x = c(0,5,10), size = 20, replace = TRUE), nrow = 1)
+# create a matrix with the number of reads with the alternative allele
+alternative <- matrix(sample(x = c(0,5,10), size = 20, replace = TRUE), nrow = 1)
+# create a matrix with the depth of coverage
 coverage <- matrix(sample(100:150, size = 20), nrow = 1)
-Pfreqs(minor = minor, coverage = coverage, min.minor = 2, ifreqs = freqs)
+# the number of reads with the reference allele is obtained by subtracting
+# the number of alternative allele reads from the depth of coverage
+reference <- coverage - alternative
+# compute allele frequencies from pooled sequencing data
+Pfreqs(reference = reference, alternative = alternative, coverage = coverage,
+min.minor = 2, ifreqs = freqs)
 
 }

@@ -4,17 +4,21 @@
 \alias{removeSites}
 \title{Apply a minor allele reads threshold}
 \usage{
-removeSites(freqs, minor, coverage, min.minor)
+removeSites(freqs, alternative, coverage, minor, min.minor)
 }
 \arguments{
 \item{freqs}{a vector of allele frequencies where each entry corresponds to a
 different site.}
 
-\item{minor}{a matrix with the number of minor-allele reads. Each row should
-be a different population and each column a different site.}
+\item{alternative}{a matrix with the number of reads with the alternative
+allele. Each row should be a different population and each column a
+different site.}
 
 \item{coverage}{a matrix with the total coverage. Each row should be a
 different population and each column a different site.}
+
+\item{minor}{a matrix with the number of minor-allele reads. Each row should
+be a different population and each column a different site.}
 
 \item{min.minor}{is an integer representing the minimum allowed number of
 minor-allele reads. Sites that, across all populations, have less
@@ -22,9 +26,10 @@ minor-allele reads than this threshold will be removed from the data.}
 }
 \value{
 a list with three named entries. \code{freqs} contains the allele
-frequencies minus the frequency of any removed site. \code{minor} contains
-the number of minor-allele reads minus any removed site and the
-\code{coverage} entry contains the total coverage minus any removed site.
+frequencies minus the frequency of any removed site. \code{alternative}
+contains the number of alternative-allele reads minus any removed site and
+the \code{coverage} entry contains the total coverage minus any removed
+site.
 }
 \description{
 Removes sites where the total number of minor-allele reads is below a certain
@@ -35,10 +40,25 @@ If a site has less minor-allele reads than \code{min.minor} across all
 populations, that site is removed from the data.
 }
 \examples{
+# create a vector of allele frequencies
 freqs <- runif(20)
+
 set.seed(10)
-minor <- matrix(sample(x = c(0,5,10), size = 20, replace = TRUE), nrow = 1)
+# create a matrix with the number of reads with the alternative allele
+alternative <- matrix(sample(x = c(0,5,10), size = 20, replace = TRUE), nrow = 1)
+# create a matrix with the depth of coverage
 coverage <- matrix(sample(100:150, size = 20), nrow = 1)
-removeSites(freqs = freqs, minor = minor, coverage, min.minor = 2)
+# the number of reads with the reference allele is obtained by subtracting
+# the number of alternative allele reads from the depth of coverage
+reference <- coverage - alternative
+
+# find the minor allele at each site
+minor <- findMinor(reference = reference, alternative = alternative, coverage = coverage)
+# keep only the matrix with the minor allele reads
+minor <- minor[["minor"]]
+
+# remove sites where the number of minor-allele reads is below the threshold
+removeSites(freqs = freqs, alternative = alternative, coverage = coverage,
+minor = minor, min.minor = 2)
 
 }

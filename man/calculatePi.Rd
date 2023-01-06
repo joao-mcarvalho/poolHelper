@@ -24,7 +24,7 @@ entry is a matrix, corresponding to a different locus. Each row of a matrix
 corresponds to a different population and each column to a different site.}
 
 \item{pool}{a list with three different entries: major, minor and total.
-This list is similar to the one obtained with the \code{\link{minorPool}}
+This list is similar to the one obtained with the \code{\link{findMinor}}
 function.}
 }
 \description{
@@ -63,7 +63,7 @@ readsReference = readsReference)
 # define the major and minor alleles for this pool-seq data
 # note that we have to select the first entry of the pools list
 # because this function works for matrices
-pools <- minorPool(reference = pools$reference[[1]], alternative = pools$alternative[[1]],
+pools <- findMinor(reference = pools$reference[[1]], alternative = pools$alternative[[1]],
 coverage = pools$total[[1]])
 
 # calculate population frequency at each SNP of this locus

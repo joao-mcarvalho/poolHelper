@@ -1,11 +1,11 @@
 Package: poolHelper
 Title: Simulates Pooled Sequencing Genetic Data
-Version: 0.0.0.9000
+Version: 0.0.8
 Authors@R: c(
     person("João", "Carvalho", , "jgcarvalho@fc.ul.pt", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-1728-0075")),
     person("Vítor", "Sousa", , "vmsousa@fc.ul.pt", role = "aut"))
-Description: Provides functions to simulate pooled sequencing data under a variety of conditions. 
+Description: Simulates pooled sequencing data under a variety of conditions. 
     Also allows for the evaluation of the average absolute difference between allele frequencies 
     computed from genotypes and those computed from pooled data. 
 License: GPL (>= 3)

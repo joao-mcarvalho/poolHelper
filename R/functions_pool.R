@@ -33,35 +33,6 @@ run_scrm <- function(nDip, nloci, theta = 10) {
 }
 
 
-#' Change to minor allele frequency
-#'
-#' Ensures that the allele frequencies computed directly from genotypes
-#' correspond to the minor allele frequencies at each site.
-#'
-#' @param freqs a vector of allele frequencies where each entry corresponds to a
-#'   different site.
-#'
-#' @return a vector with the same length as \code{freqs} with the allele
-#'   frequencies above 0.5 replaced by the minor allele frequency.
-#'
-#' @examples
-#' set.seed(10)
-#' freqs <- runif(20)
-#' changeFreqs(freqs)
-#'
-#' @export
-changeFreqs <- function(freqs) {
-
-  # check to see which sites have an allele frequency above 0.5
-  toreplace <- freqs > 0.5
-  # replace those sites by 1 - frequency to ensure that we have the minor allele frequency for each site
-  freqs[toreplace] <- 1 - freqs[toreplace]
-
-  # output the minor allele frequency computed directly from genotypes
-  freqs
-}
-
-
 #' Compute allele frequencies from genotypes
 #'
 #' Computes alternative allele frequencies from genotypes by dividing the total
@@ -89,10 +60,6 @@ Ifreqs <- function(nDip, genotypes) {
   # compute allele frequencies by dividing the number of alternative alleles by the total number of alleles
   ifreqs <- lapply(alternative, function(l) l/(nDip*2))
 
-  # ensure that the allele frequencies correspond to the minor allele frequencies
-  # by changing the frequencies above 0.5
-  ifreqs <- lapply(ifreqs, FUN = function(locus) changeFreqs(locus))
-
   # output the allele frequencies computed directly from genotypes
   ifreqs
 }
@@ -108,28 +75,47 @@ Ifreqs <- function(nDip, genotypes) {
 #'
 #' @param freqs a vector of allele frequencies where each entry corresponds to a
 #'   different site.
-#' @param minor a matrix with the number of minor-allele reads. Each row should
-#'   be a different population and each column a different site.
+#' @param alternative a matrix with the number of reads with the alternative
+#'   allele. Each row should be a different population and each column a
+#'   different site.
 #' @param coverage a matrix with the total coverage. Each row should be a
 #'   different population and each column a different site.
+#' @param minor a matrix with the number of minor-allele reads. Each row should
+#'   be a different population and each column a different site.
 #' @param min.minor is an integer representing the minimum allowed number of
 #'   minor-allele reads. Sites that, across all populations, have less
 #'   minor-allele reads than this threshold will be removed from the data.
 #'
 #' @return a list with three named entries. \code{freqs} contains the allele
-#'   frequencies minus the frequency of any removed site. \code{minor} contains
-#'   the number of minor-allele reads minus any removed site and the
-#'   \code{coverage} entry contains the total coverage minus any removed site.
+#'   frequencies minus the frequency of any removed site. \code{alternative}
+#'   contains the number of alternative-allele reads minus any removed site and
+#'   the \code{coverage} entry contains the total coverage minus any removed
+#'   site.
 #'
 #' @examples
+#' # create a vector of allele frequencies
 #' freqs <- runif(20)
+#'
 #' set.seed(10)
-#' minor <- matrix(sample(x = c(0,5,10), size = 20, replace = TRUE), nrow = 1)
+#' # create a matrix with the number of reads with the alternative allele
+#' alternative <- matrix(sample(x = c(0,5,10), size = 20, replace = TRUE), nrow = 1)
+#' # create a matrix with the depth of coverage
 #' coverage <- matrix(sample(100:150, size = 20), nrow = 1)
-#' removeSites(freqs = freqs, minor = minor, coverage, min.minor = 2)
+#' # the number of reads with the reference allele is obtained by subtracting
+#' # the number of alternative allele reads from the depth of coverage
+#' reference <- coverage - alternative
+#'
+#' # find the minor allele at each site
+#' minor <- findMinor(reference = reference, alternative = alternative, coverage = coverage)
+#' # keep only the matrix with the minor allele reads
+#' minor <- minor[["minor"]]
+#'
+#' # remove sites where the number of minor-allele reads is below the threshold
+#' removeSites(freqs = freqs, alternative = alternative, coverage = coverage,
+#' minor = minor, min.minor = 2)
 #'
 #' @export
-removeSites <- function(freqs, minor, coverage, min.minor) {
+removeSites <- function(freqs, alternative, coverage, minor, min.minor) {
 
   # get the total number of minor allele reads in the data
   tminor <- colSums(minor)
@@ -139,18 +125,22 @@ removeSites <- function(freqs, minor, coverage, min.minor) {
   # if there are sites where the sum of the reads with the minor allele is below the threshold
   if(sum(toremove) != 0) {
 
+    # check if the input is correct - freqs should always be supplied as a vector
+    if(!inherits(freqs, "numeric"))
+      stop(paste("freqs should be supplied on a numeric vector, with each entry corresponding to a site. Please check"))
+
     # remove those columns from the matrix containing the depth of coverage
     coverage <- coverage[, !toremove, drop = FALSE]
-    # remove those columns from the matrix containing the number of reads with the minor allele
-    minor <- minor[, !toremove, drop = FALSE]
+    # remove those columns from the matrix containing the number of reads with the alternative allele
+    alternative <- alternative[, !toremove, drop = FALSE]
 
     # remove those entries from the vector containing the allele frequencies computed directly from genotypes
     freqs <- freqs[!toremove, drop = FALSE]
   }
 
   # create the output containing the frequencies computed from the genotypes
-  # and the number of Pool-seq minor allele reads and total coverage
-  out <- list(freqs = freqs, minor = minor, coverage = coverage)
+  # and the number of Pool-seq alternative allele reads and total coverage
+  out <- list(freqs = freqs, alternative = alternative, coverage = coverage)
   # output the results of the function
   out
 }
@@ -162,13 +152,15 @@ removeSites <- function(freqs, minor, coverage, min.minor) {
 #' with too few minor-allele reads from both the pool frequencies and
 #' frequencies computed directly from genotypes.
 #'
-#' The frequency at a given SNP is calculated according to: `pi = c/r`, where c =
-#' number of minor-allele reads and r = total number of observed reads.
+#' The frequency at a given SNP is calculated according to: `pi = c/r`, where c
+#' = number of minor-allele reads and r = total number of observed reads.
 #' Additionally, if a site has less minor-allele reads than \code{min.minor}
 #' across all populations, that site is removed from the data.
 #'
-#' @param minor a matrix with the number of minor-allele reads. Each row should
-#'   be a different population and each column a different site.
+#' @param reference a matrix with the number of reference allele reads. Each row
+#'   should be a different population and each column a different site.
+#' @param alternative a matrix with the number of alternative allele reads. Each
+#'   row should be a different population and each column a different site.
 #' @param coverage a matrix with the total coverage. Each row should be a
 #'   different population and each column a different site.
 #' @param min.minor is an integer representing the minimum allowed number of
@@ -177,29 +169,55 @@ removeSites <- function(freqs, minor, coverage, min.minor) {
 #' @param ifreqs a vector of allele frequencies computed directly from the
 #'   genotypes where each entry corresponds to a different site.
 #'
+#'
 #' @return a list with two entries. The \code{ifreqs} entry contains the allele
 #'   frequencies computed directly from genotypes and \code{pfreqs} the allele
 #'   frequencies computed from pooled sequencing data.
 #'
 #' @examples
 #' set.seed(10)
+#' # create a vector of allele frequencies
 #' freqs <- runif(20)
-#' freqs <- changeFreqs(freqs)
 #' set.seed(10)
-#' minor <- matrix(sample(x = c(0,5,10), size = 20, replace = TRUE), nrow = 1)
+#' # create a matrix with the number of reads with the alternative allele
+#' alternative <- matrix(sample(x = c(0,5,10), size = 20, replace = TRUE), nrow = 1)
+#' # create a matrix with the depth of coverage
 #' coverage <- matrix(sample(100:150, size = 20), nrow = 1)
-#' Pfreqs(minor = minor, coverage = coverage, min.minor = 2, ifreqs = freqs)
+#' # the number of reads with the reference allele is obtained by subtracting
+#' # the number of alternative allele reads from the depth of coverage
+#' reference <- coverage - alternative
+#' # compute allele frequencies from pooled sequencing data
+#' Pfreqs(reference = reference, alternative = alternative, coverage = coverage,
+#' min.minor = 2, ifreqs = freqs)
 #'
 #' @export
-Pfreqs <- function(minor, coverage, min.minor, ifreqs) {
+Pfreqs <- function(reference, alternative, coverage, min.minor, ifreqs) {
 
-  # use the removeSites function to remove sites with less than `min.minor` minor allele reads
-  temp <- removeSites(freqs = ifreqs, minor = minor, coverage = coverage, min.minor = min.minor)
+  # if the minimum number of minor allele reads is not set to zero
+  if(min.minor != 0) {
+
+    # check which of the two simulated alleles (reference or alternative) corresponds to the minor allele
+    minor <- findMinor(reference = reference, alternative = alternative, coverage = coverage)
+    # keep only the matrix with the number of minor allele reads
+    minor <- minor[["minor"]]
+
+    # use the removeSites function to remove sites with less than `min.minor` minor allele reads
+    temp <- removeSites(freqs = ifreqs, alternative = alternative, coverage = coverage,
+                        minor = minor, min.minor = min.minor)
+
+    # get the number of reads with the alternative allele
+    alternative <- temp[["alternative"]]
+    # and the total coverage
+    coverage <- temp[["coverage"]]
+
+    # get the frequencies computed from genotypes
+    ifreqs <- temp[["freqs"]]
+  }
 
   # compute the allele frequencies for Pool-seq data
-  freqs <- temp[["minor"]]/temp[["coverage"]]
+  freqs <- alternative/coverage
   # create the output in this instance - with the allele frequencies computed from genotypes and from Pool-seq data
-  freqs <- list(ifreqs = temp[["freqs"]], pfreqs = freqs)
+  freqs <- list(ifreqs = ifreqs, pfreqs = freqs)
 
   # output the allele frequencies
   freqs
@@ -316,25 +334,16 @@ maePool <- function(nDip, nloci, pools, pError, sError, mCov, vCov, min.minor, m
 
   # simulate the number of reference reads
   reference <- lapply(1:nloci, function(locus)
-    numberReferencePop(genotypes = genotypes[[locus]], indContribution = indContribution[[locus]], size = pools, error = sError))
+    numberReferencePop(genotypes = genotypes[[locus]], indContribution = indContribution[[locus]],
+                       size = pools, error = sError))
 
   # simulate pooled sequencing data
   pool <- poolPops(nPops = 1, nLoci = nloci, indContribution = indContribution, readsReference = reference)
 
-  # use an lapply to ensure that the ancestral allele of the simulations is also the major allele - do this for each locus
-  pool <- lapply(1:nloci, function(locus)
-    minorPool(reference = pool[["reference"]][[locus]], alternative = pool[["alternative"]][[locus]],
-              coverage = pool[["total"]][[locus]]))
-
-  # convert the pool list back to the previous format
-  # one entry for ancestral matrices, one for derived and a final one for total matrices
-  pool <- list(major = lapply(pool, function(locus) locus[["major"]]),
-               minor = lapply(pool, function(locus) locus[["minor"]]),
-               total = lapply(pool, function(locus) locus[["total"]]))
-
   # compute the allele frequencies obtained with pooled sequencing
   pfreqs <- lapply(1:nloci, function(locus)
-    Pfreqs(minor = pool[["minor"]][[locus]], coverage = pool[["total"]][[locus]], min.minor = min.minor, ifreqs = ifreqs[[locus]]))
+    Pfreqs(reference = pool[["reference"]][[locus]], alternative = pool[["alternative"]][[locus]],
+           coverage = pool[["total"]][[locus]], min.minor = min.minor, ifreqs = ifreqs[[locus]]))
 
   # get the allele frequencies computed directly from genotypes after removing sites that did not pass the threshold
   ifreqs <- lapply(pfreqs, `[[`, 1)
@@ -474,7 +483,6 @@ maeFreqs <- function(nDip, nloci, pError, sError, mCov, vCov, min.minor, minimum
   # output the final dataframe with the MAE values for the different parameter combinations
   final
 }
-
 
 #' Compute expected heterozygosity per site
 #'
@@ -657,7 +665,7 @@ errorHet <- function(nDip, nloci, pools, pError, sError, mCov, vCov, min.minor, 
   indContribution <- lapply(1:nloci, function(locus)
     popsReads(list_np = pools, coverage = reads[[locus]], pError = pError))
 
-  # simulate the number of Ancestral reads
+  # simulate the number of reference reads
   reference <- lapply(1:nloci, function(locus)
     numberReferencePop(genotypes = genotypes[[locus]], indContribution = indContribution[[locus]],
                        size = pools, error = sError))
@@ -665,23 +673,12 @@ errorHet <- function(nDip, nloci, pools, pError, sError, mCov, vCov, min.minor, 
   # simulate pooled sequencing data
   pool <- poolPops(nPops = 1, nLoci = nloci, indContribution = indContribution, readsReference = reference)
 
-  # use an lapply to ensure that the ancestral allele of the simulations is also the major allele - do this for each locus
-  pool <- lapply(1:nloci, function(locus)
-    minorPool(reference = pool[["reference"]][[locus]], alternative = pool[["alternative"]][[locus]],
-              coverage = pool[["total"]][[locus]]))
-
-  # convert the pool list back to the previous format
-  # one entry for ancestral matrices, one for derived and a final one for total matrices
-  pool <- list(major = lapply(pool, function(locus) locus[["major"]]),
-               minor = lapply(pool, function(locus) locus[["minor"]]),
-               total = lapply(pool, function(locus) locus[["total"]]))
-
   # compute the allele frequencies obtained with pooled sequencing
   pfreqs <- lapply(1:nloci, function(locus)
-    Pfreqs(minor = pool[["minor"]][[locus]], coverage = pool[["total"]][[locus]], min.minor = min.minor,
-           ifreqs = indHets[[locus]]))
+    Pfreqs(reference = pool[["reference"]][[locus]], alternative = pool[["alternative"]][[locus]],
+           coverage = pool[["total"]][[locus]], min.minor = min.minor, ifreqs = indHets[[locus]]))
 
-  # get the allele frequencies computed directly from genotypes after removing sites that did not pass the threshold
+  # get the expected heterozygosity computed directly from genotypes after removing sites that did not pass the threshold
   indHets <- lapply(pfreqs, `[[`, 1)
   # get the allele frequencies computed from Pool-seq after removing sites that did not pass the threshold
   pfreqs <- lapply(pfreqs, `[[`, 2)
@@ -2111,11 +2108,11 @@ poolPops <- function(nPops, nLoci, indContribution, readsReference) {
 #'
 #' # define the major and minor alleles for this ool-seq data
 #' # we have to select the first entry of the pools list because this function works for matrices
-#' minorPool(reference = pools$reference[[1]], alternative = pools$alternative[[1]],
+#' findMinor(reference = pools$reference[[1]], alternative = pools$alternative[[1]],
 #' coverage = pools$total[[1]])
 #'
 #' @export
-minorPool <- function(reference, alternative, coverage, min.minor = NA) {
+findMinor <- function(reference, alternative, coverage, min.minor = NA) {
 
   # set the output for the situations where there is no SNP at the locus
   # check for NAs in one of the matrices
@@ -2138,27 +2135,6 @@ minorPool <- function(reference, alternative, coverage, min.minor = NA) {
     reference[, eval] <- Rder[, eval]
     # and then replace those same columns in the matrix with the reads of the "alternative" allele
     alternative[, eval] <- Ranc[, eval]
-
-    # if the min.minor input is not NA - then it should be an integer
-    # representing the minimum number of reads with the minor allele that we should observe across all populations
-    if (is.na(min.minor) == FALSE) {
-      # now we need to find the total coverage - across all populations - of the minor frequency allele
-      # since we switched the columns in the previous step, the number of reads with the minor allele - the less frequent allele
-      # are stored in the alternative matrix
-      minor <- colSums(alternative)
-      # find out in which columns the total sum of the reads with the minor allele is below the threshold
-      toremove <- minor < min.minor
-
-      # if there are sites where the sum of the reads with the minor allele is below the threshold
-      if (length(toremove) != 0) {
-        # remove those columns from the matrix containing the depth of coverage
-        coverage <- coverage[, !toremove, drop = FALSE]
-        # remove those columns from the matrix containing the number of reads with the reference allele
-        reference <- reference[, !toremove, drop = FALSE]
-        # remove those columns from the matrix containing the number of reads with the alternative allele
-        alternative <- alternative[, !toremove, drop = FALSE]
-      }
-    }
 
     # output the matrices with the various types of read numbers
     out <- list(major = reference, minor = alternative, total = coverage)
@@ -2197,7 +2173,7 @@ minorPool <- function(reference, alternative, coverage, min.minor = NA) {
 #'   corresponds to a different population and each column to a different site.}
 #'
 #'   \item{pool}{a list with three different entries: major, minor and total.
-#'   This list is similar to the one obtained with the \code{\link{minorPool}}
+#'   This list is similar to the one obtained with the \code{\link{findMinor}}
 #'   function.}
 #'
 #' @examples
@@ -2223,7 +2199,7 @@ minorPool <- function(reference, alternative, coverage, min.minor = NA) {
 #' # define the major and minor alleles for this pool-seq data
 #' # note that we have to select the first entry of the pools list
 #' # because this function works for matrices
-#' pools <- minorPool(reference = pools$reference[[1]], alternative = pools$alternative[[1]],
+#' pools <- findMinor(reference = pools$reference[[1]], alternative = pools$alternative[[1]],
 #' coverage = pools$total[[1]])
 #'
 #' # calculate population frequency at each SNP of this locus
