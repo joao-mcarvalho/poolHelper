@@ -43,16 +43,16 @@ and each row a different population.}
 }
 \description{
 This function checks which of the two simulated alleles (reference or
-alternative) corresponds to the major allele. This function can also be used
+alternative) corresponds to the minor allele. This function can also be used
 to remove sites according to a minor-allele reads threshold.
 }
 \details{
 More precisely, this function counts the number of reads with the reference
-or alternative allele at each site and then sets the major allele as the most
-frequent of the two. This is done across all populations and so the major and
-minor alleles are defined at a global level. Then if the \code{min.minor} input is
-not NA, sites where the number of minor allele reads, across all populations,
-are below the user-defined threshold are removed.
+or alternative allele at each site and then sets the minor allele as the
+least frequent of the two. This is done across all populations and so the
+major and minor alleles are defined at a global level. Then if the
+\code{min.minor} input is not NA, sites where the number of minor allele reads,
+across all populations, is below the user-defined threshold are removed.
 }
 \examples{
 # simulate coverage at 5 SNPs for two populations, assuming 20x mean coverage
@@ -74,7 +74,7 @@ size = rep(list(rep(5, 2)), 2), error = 0.01)
 pools <- poolPops(nPops = 2, nLoci = 1, indContribution = indContribution,
 readsReference = readsReference)
 
-# define the major and minor alleles for this ool-seq data
+# define the major and minor alleles for this Pool-seq data
 # we have to select the first entry of the pools list because this function works for matrices
 findMinor(reference = pools$reference[[1]], alternative = pools$alternative[[1]],
 coverage = pools$total[[1]])

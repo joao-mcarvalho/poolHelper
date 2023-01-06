@@ -86,11 +86,16 @@ Ifreqs <- function(nDip, genotypes) {
 #'   minor-allele reads. Sites that, across all populations, have less
 #'   minor-allele reads than this threshold will be removed from the data.
 #'
-#' @return a list with three named entries. \code{freqs} contains the allele
-#'   frequencies minus the frequency of any removed site. \code{alternative}
-#'   contains the number of alternative-allele reads minus any removed site and
-#'   the \code{coverage} entry contains the total coverage minus any removed
-#'   site.
+#' @return a list with three named entries:
+#'
+#'   \item{freqs}{is a vector with the allele frequencies minus the frequency of
+#'   the removed sites.}
+#'
+#'   \item{alternative}{is a matrix with the number of alternative-allele reads
+#'   per site, minus any removed sites.}
+#'
+#'   \item{coverage}{is a matrix with the depth of coverage minus the coverage
+#'   of the removed sites.}
 #'
 #' @examples
 #' # create a vector of allele frequencies
@@ -148,12 +153,12 @@ removeSites <- function(freqs, alternative, coverage, minor, min.minor) {
 
 #' Compute allele frequencies from pooled sequencing data
 #'
-#' Computes the minor-allele frequency from pooled data and removes any site
-#' with too few minor-allele reads from both the pool frequencies and
-#' frequencies computed directly from genotypes.
+#' Computes the frequency of the alternative allele in Pool-seq data and removes
+#' any site with too few minor-allele reads from both the pool frequencies and
+#' the frequencies computed directly from genotypes.
 #'
 #' The frequency at a given SNP is calculated according to: `pi = c/r`, where c
-#' = number of minor-allele reads and r = total number of observed reads.
+#' = number of alternative allele reads and r = total number of observed reads.
 #' Additionally, if a site has less minor-allele reads than \code{min.minor}
 #' across all populations, that site is removed from the data.
 #'
@@ -2046,15 +2051,15 @@ poolPops <- function(nPops, nLoci, indContribution, readsReference) {
 #' Define major and minor alleles
 #'
 #' This function checks which of the two simulated alleles (reference or
-#' alternative) corresponds to the major allele. This function can also be used
+#' alternative) corresponds to the minor allele. This function can also be used
 #' to remove sites according to a minor-allele reads threshold.
 #'
 #' More precisely, this function counts the number of reads with the reference
-#' or alternative allele at each site and then sets the major allele as the most
-#' frequent of the two. This is done across all populations and so the major and
-#' minor alleles are defined at a global level. Then if the `min.minor` input is
-#' not NA, sites where the number of minor allele reads, across all populations,
-#' are below the user-defined threshold are removed.
+#' or alternative allele at each site and then sets the minor allele as the
+#' least frequent of the two. This is done across all populations and so the
+#' major and minor alleles are defined at a global level. Then if the
+#' `min.minor` input is not NA, sites where the number of minor allele reads,
+#' across all populations, is below the user-defined threshold are removed.
 #'
 #' @param reference is a matrix of reference allele reads. Each row of the
 #'   matrix should be a different population and each column a different site.
@@ -2106,7 +2111,7 @@ poolPops <- function(nPops, nLoci, indContribution, readsReference) {
 #' pools <- poolPops(nPops = 2, nLoci = 1, indContribution = indContribution,
 #' readsReference = readsReference)
 #'
-#' # define the major and minor alleles for this ool-seq data
+#' # define the major and minor alleles for this Pool-seq data
 #' # we have to select the first entry of the pools list because this function works for matrices
 #' findMinor(reference = pools$reference[[1]], alternative = pools$alternative[[1]],
 #' coverage = pools$total[[1]])
@@ -2166,7 +2171,7 @@ findMinor <- function(reference, alternative, coverage, min.minor = NA) {
 #' @param nLoci an integer that represents the total number of independent loci
 #'   in the dataset.
 #'
-#' @return a list with two names entries
+#' @return a list with two named entries
 #'
 #'   \item{pi}{a list with the allele frequencies of each population. Each list
 #'   entry is a matrix, corresponding to a different locus. Each row of a matrix

@@ -17,7 +17,7 @@ The output of the \code{poolPops} function should be used as input here.}
 in the dataset.}
 }
 \value{
-a list with two names entries
+a list with two named entries
 
 \item{pi}{a list with the allele frequencies of each population. Each list
 entry is a matrix, corresponding to a different locus. Each row of a matrix

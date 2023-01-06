@@ -29,13 +29,13 @@ frequencies computed directly from genotypes and \code{pfreqs} the allele
 frequencies computed from pooled sequencing data.
 }
 \description{
-Computes the minor-allele frequency from pooled data and removes any site
-with too few minor-allele reads from both the pool frequencies and
-frequencies computed directly from genotypes.
+Computes the frequency of the alternative allele in Pool-seq data and removes
+any site with too few minor-allele reads from both the pool frequencies and
+the frequencies computed directly from genotypes.
 }
 \details{
 The frequency at a given SNP is calculated according to: \code{pi = c/r}, where c
-= number of minor-allele reads and r = total number of observed reads.
+= number of alternative allele reads and r = total number of observed reads.
 Additionally, if a site has less minor-allele reads than \code{min.minor}
 across all populations, that site is removed from the data.
 }

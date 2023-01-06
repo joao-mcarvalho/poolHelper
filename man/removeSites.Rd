@@ -25,11 +25,16 @@ minor-allele reads. Sites that, across all populations, have less
 minor-allele reads than this threshold will be removed from the data.}
 }
 \value{
-a list with three named entries. \code{freqs} contains the allele
-frequencies minus the frequency of any removed site. \code{alternative}
-contains the number of alternative-allele reads minus any removed site and
-the \code{coverage} entry contains the total coverage minus any removed
-site.
+a list with three named entries:
+
+\item{freqs}{is a vector with the allele frequencies minus the frequency of
+the removed sites.}
+
+\item{alternative}{is a matrix with the number of alternative-allele reads
+per site, minus any removed sites.}
+
+\item{coverage}{is a matrix with the depth of coverage minus the coverage
+of the removed sites.}
 }
 \description{
 Removes sites where the total number of minor-allele reads is below a certain
