@@ -122,6 +122,10 @@ Ifreqs <- function(nDip, genotypes) {
 #' @export
 removeSites <- function(freqs, alternative, coverage, minor, min.minor) {
 
+  # check if the input is correct - freqs should always be supplied as a vector
+  if(!inherits(freqs, "numeric"))
+    stop(paste("freqs should be supplied on a numeric vector, with each entry corresponding to a site. Please check"))
+
   # get the total number of minor allele reads in the data
   tminor <- colSums(minor)
   # find out in which columns the total sum of the reads with the minor allele is below the threshold
@@ -129,10 +133,6 @@ removeSites <- function(freqs, alternative, coverage, minor, min.minor) {
 
   # if there are sites where the sum of the reads with the minor allele is below the threshold
   if(sum(toremove) != 0) {
-
-    # check if the input is correct - freqs should always be supplied as a vector
-    if(!inherits(freqs, "numeric"))
-      stop(paste("freqs should be supplied on a numeric vector, with each entry corresponding to a site. Please check"))
 
     # remove those columns from the matrix containing the depth of coverage
     coverage <- coverage[, !toremove, drop = FALSE]

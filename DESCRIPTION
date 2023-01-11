@@ -20,7 +20,9 @@ Imports:
 Suggests: 
     knitr,
     rmarkdown,
-    ggplot2
+    ggplot2,
+    testthat (>= 3.0.0)
 VignetteBuilder: knitr
 URL: https://github.com/joao-mcarvalho/poolHelper
 BugReports: https://github.com/joao-mcarvalho/poolHelper/issues
+Config/testthat/edition: 3
