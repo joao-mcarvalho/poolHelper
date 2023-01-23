@@ -10,4 +10,4 @@
 ### NEWS.md setup
 
 - added NEWS.md creation with newsmd
-
+- added reference to a pre-print paper in bioRxiv 
