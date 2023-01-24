@@ -1297,10 +1297,6 @@ poolProbs <- function(nPools, vector_np, nSNPs, pError) {
     stop(paste("The nPools input is", paste(nPools), "and so, the length of the size vector should also be",
                paste(nPools, ".", sep = ""), "Please check"))
 
-  # Silence warnings - when using only two pools, the rdirichlet functions prints a warning about reducing
-  # to a beta function. This ensures that the warning is not printed
-  options(warn = -1)
-
   # the total number of individuals in the population (n) can be obtained by adding the individuals in all pools
   n <- sum(vector_np)
 
@@ -1317,9 +1313,6 @@ poolProbs <- function(nPools, vector_np, nSNPs, pError) {
 
   # use a Dirichlet distribution to get the probability of contribution for each pool across all sites
   probs <- t(MCMCpack::rdirichlet(n = nSNPs, alpha = alpha))
-
-  # set the warning level back to normal
-  options(warn = 0)
 
   # output the probability of contributing for each pool
   probs
@@ -1401,12 +1394,6 @@ poolReads <- function(nPools, coverage, probs) {
 #' @export
 indProbs <- function(np, nSNPs, pError) {
 
-  # This package contains a function to perform random draws from a Dirichlet distribution
-
-  # Silence warnings - when using only two individuals, the rdirichlet functions prints a warning about reducing
-  # to a beta function. This ensures that the warning is not printed
-  options(warn = -1)
-
   # pooling error is defined in % - change this to a proportion
   pError <- pError/100
 
@@ -1420,9 +1407,6 @@ indProbs <- function(np, nSNPs, pError) {
 
   # use a dirichlet distribution to get the probability of contribution for each individual across all sites
   probs <- t(MCMCpack::rdirichlet(n = nSNPs, alpha = rep(alpha, times = np)))
-
-  # set the warning level back to normal
-  options(warn = 0)
 
   # output the probability of contributing for each individual
   probs

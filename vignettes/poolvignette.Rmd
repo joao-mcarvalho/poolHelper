@@ -302,15 +302,11 @@ In the next chunk, we examine the probability of contribution of 10 individuals,
 indProbs(np = 10, nSNPs = 6, pError = 5)
 ```
 
-In this example, the probability of contribution is very similar across individuals. In fact, the probability is around 0.1 for each individual, meaning that, in a situation with low pooling error, all individuals should contribute equally. If we simulate the same conditions, but increasing the pooling error (`pError = 150`) we should see a different result. Note that we change the option so that the output is not printed in scientific notation. This is just to make it easier to visualize the differences and we return to the default settings in the end of the code chunk.
+In this example, the probability of contribution is very similar across individuals. In fact, the probability is around 0.1 for each individual, meaning that, in a situation with low pooling error, all individuals should contribute equally. If we simulate the same conditions, but increasing the pooling error (`pError = 150`) we should see a different result. Note that we use the `round` function so that the the output is not printed in scientific notation. This is just to make it easier to visualize the differences.
 
-```{r scientific notation}
-# apply a penalty to print numeric values in scientific notation
-options("scipen" = 100, "digits" = 5)
+```{r probability individual with higher error}
 # compute the probability of contribution of each individual
-indProbs(np = 10, nSNPs = 5, pError = 150)
-# return the penalty to the default values
-options("scipen" = 0, "digits" = 7)
+round(indProbs(np = 10, nSNPs = 5, pError = 150), digits = 5)
 ```
 
 With this higher pooling error, it is evident that the probability of contribution is not the same across all individuals. Some individuals have a much higher probability of contribution while others have a probability of contribution very close to zero.
