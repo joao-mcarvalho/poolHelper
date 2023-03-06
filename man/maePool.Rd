@@ -14,7 +14,8 @@ maePool(
   vCov,
   min.minor,
   minimum = NA,
-  maximum = NA
+  maximum = NA,
+  theta = 10
 )
 }
 \arguments{
@@ -59,6 +60,9 @@ removed from the data.}
 \item{maximum}{an optional integer representing the maximum coverage allowed.
 Sites where the population has a depth of coverage above this threshold are
 removed from the data.}
+
+\item{theta}{a value for the mutation rate assuming theta = 4Nu, where u is
+the neutral mutation rate per locus.}
 }
 \value{
 a data.frame with columns detailing the number of diploid

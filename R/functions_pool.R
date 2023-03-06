@@ -272,6 +272,8 @@ Pfreqs <- function(reference, alternative, coverage, min.minor, ifreqs) {
 #' @param maximum an optional integer representing the maximum coverage allowed.
 #'   Sites where the population has a depth of coverage above this threshold are
 #'   removed from the data.
+#' @param theta a value for the mutation rate assuming theta = 4Nu, where u is
+#'   the neutral mutation rate per locus.
 #'
 #' @return a data.frame with columns detailing the number of diploid
 #'   individuals, the pool error, the number of pools, the number of individuals
@@ -294,10 +296,10 @@ Pfreqs <- function(reference, alternative, coverage, min.minor, ifreqs) {
 #' mCov = 100, vCov = 250, min.minor = 2, minimum = 10, maximum = 180)
 #'
 #' @export
-maePool <- function(nDip, nloci, pools, pError, sError, mCov, vCov, min.minor, minimum = NA, maximum = NA) {
+maePool <- function(nDip, nloci, pools, pError, sError, mCov, vCov, min.minor, minimum = NA, maximum = NA, theta = 10) {
 
   # run SCRM and obtain genotypes for a single population
-  genotypes <- run_scrm(nDip = nDip, nloci = nloci)
+  genotypes <- run_scrm(nDip = nDip, nloci = nloci, theta = theta)
 
   # simulate number of reads
   reads <- simulateCoverage(mean = mCov, variance = vCov, genotypes = genotypes)
@@ -431,6 +433,8 @@ maePool <- function(nDip, nloci, pools, pError, sError, mCov, vCov, min.minor, m
 #' @param maximum an optional integer representing the maximum coverage allowed.
 #'   Sites where the population has a depth of coverage above this threshold are
 #'   removed from the data.
+#' @param theta a value for the mutation rate assuming theta = 4Nu, where u is
+#'   the neutral mutation rate per locus.
 #'
 #' @return a data.frame with columns detailing the number of diploid
 #'   individuals, the pool error, the number of pools, the number of individuals
@@ -452,7 +456,7 @@ maePool <- function(nDip, nloci, pools, pError, sError, mCov, vCov, min.minor, m
 #' mCov = c(100, 200), vCov = c(200, 500), min.minor = 1)
 #'
 #' @export
-maeFreqs <- function(nDip, nloci, pError, sError, mCov, vCov, min.minor, minimum = NA, maximum = NA) {
+maeFreqs <- function(nDip, nloci, pError, sError, mCov, vCov, min.minor, minimum = NA, maximum = NA, theta = 10) {
 
   # create a matrix to save the values of the mean absolute error for the various conditions
   final <- matrix(data = NA, nrow = 1, ncol = 7)
@@ -477,7 +481,7 @@ maeFreqs <- function(nDip, nloci, pError, sError, mCov, vCov, min.minor, minimum
 
     # compute the average absolute difference between the allele frequencies from genotypes and from Pool-seq data
     temp <- maePool(nDip = dip, nloci = nloci, pError = pError, pools = list(dip), sError = sError, mCov = meanCov,
-                    vCov = varCov, min.minor = min.minor, minimum = minimum, maximum = maximum)
+                    vCov = varCov, min.minor = min.minor, minimum = minimum, maximum = maximum, theta = theta)
 
     # add those values to the dataframe containing all the results
     final <- rbind(final, temp)
@@ -604,6 +608,8 @@ Expected_Het <- function(Pop_Pi) {
 #' @param maximum an optional integer representing the maximum coverage allowed.
 #'   Sites where the population has a depth of coverage above this threshold are
 #'   removed from the data.
+#' @param theta a value for the mutation rate assuming theta = 4Nu, where u is
+#'   the neutral mutation rate per locus.
 #'
 #' @return a data.frame with columns detailing the number of diploid
 #'   individuals, the pool error, the number of pools, the number of individuals
@@ -626,10 +632,10 @@ Expected_Het <- function(Pop_Pi) {
 #' mCov = 100, vCov = 250, min.minor = 2, minimum = 10, maximum = 180)
 #'
 #' @export
-errorHet <- function(nDip, nloci, pools, pError, sError, mCov, vCov, min.minor, minimum = NA, maximum = NA) {
+errorHet <- function(nDip, nloci, pools, pError, sError, mCov, vCov, min.minor, minimum = NA, maximum = NA, theta = 10) {
 
   # run SCRM and obtain genotypes for a single population
-  genotypes <- run_scrm(nDip = nDip, nloci = nloci)
+  genotypes <- run_scrm(nDip = nDip, nloci = nloci, theta = theta)
 
   # simulate number of reads
   reads <- simulateCoverage(mean = mCov, variance = vCov, genotypes = genotypes)
@@ -768,6 +774,8 @@ errorHet <- function(nDip, nloci, pools, pError, sError, mCov, vCov, min.minor, 
 #' @param maximum an optional integer representing the maximum coverage allowed.
 #'   Sites where the population has a depth of coverage above this threshold are
 #'   removed from the data.
+#' @param theta a value for the mutation rate assuming theta = 4Nu, where u is
+#'   the neutral mutation rate per locus.
 #'
 #' @return a data.frame with columns detailing the number of diploid
 #'   individuals, the pool error, the number of pools, the number of individuals
@@ -789,7 +797,7 @@ errorHet <- function(nDip, nloci, pools, pError, sError, mCov, vCov, min.minor, 
 #' mCov = c(100, 200), vCov = c(200, 500), min.minor = 1)
 #'
 #' @export
-maeHet <- function(nDip, nloci, pError, sError, mCov, vCov, min.minor, minimum = NA, maximum = NA) {
+maeHet <- function(nDip, nloci, pError, sError, mCov, vCov, min.minor, minimum = NA, maximum = NA, theta = 10) {
 
   # create a matrix to save the values of the mean absolute error for the various conditions
   final <- matrix(data = NA, nrow = 1, ncol = 7)
@@ -814,7 +822,7 @@ maeHet <- function(nDip, nloci, pError, sError, mCov, vCov, min.minor, minimum =
 
     # compute the average absolute difference between the allele frequencies from genotypes and from Pool-seq data
     temp <- errorHet(nDip = dip, nloci = nloci, pError = pError, pools = list(dip), sError = sError, mCov = meanCov,
-                     vCov = varCov, min.minor = min.minor, minimum = minimum, maximum = maximum)
+                     vCov = varCov, min.minor = min.minor, minimum = minimum, maximum = maximum, theta = theta)
 
     # add those values to the dataframe containing all the results
     final <- rbind(final, temp)
