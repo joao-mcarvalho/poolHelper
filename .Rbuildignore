@@ -3,3 +3,4 @@
 ^LICENSE\.md$
 ^cran-comments\.md$
 ^CRAN-SUBMISSION$
+^Example_VCFforPool\.txt$

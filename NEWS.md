@@ -12,4 +12,6 @@
 - added NEWS.md creation with newsmd
 - added reference to a pre-print paper in bioRxiv 
 - removed changes to the global options of the user
-- added the possibility to change theta (06-03-2022)
+- added the possibility to change theta (06-03-2023)
+- added a function to compute the mean absolute error using genotypes defined by the user (10-04-2023)
+- added a function to simulate Pool-seq data given genotypes defined by the user (10-04-2023)
