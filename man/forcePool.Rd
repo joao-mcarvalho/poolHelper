@@ -23,7 +23,7 @@ extra loci were simulated, this vector informs how many loci of each
 simulation type should be randomly selected.}
 }
 \value{
-a list with three names entries
+a list with three named entries
 
 \item{major}{a list with one entry per locus. Each entry is a matrix with
 the number of major allele reads for each population. Each column
