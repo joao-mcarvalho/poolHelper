@@ -2603,4 +2603,3 @@ simPoolseq <- function(genotypes, pools, pError, sError, mCov, vCov, min.minor, 
   # output Pool-seq data
   pool
 }
-
