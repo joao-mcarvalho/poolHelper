@@ -2175,19 +2175,31 @@ numberReferencePop <- function(genotypes, indContribution, size, error) {
 #' @export
 poolPops <- function(nPops, nLoci, indContribution, readsReference) {
 
-  # when dealing with a single locus it's possible that the indContribution input is not on a list format
-  if(any(class(indContribution) != "list"))
-    indContribution <- list(indContribution)
+  # when dealing with a single population and a single locus
+  if(nPops == 1  && nLoci == 1) {
 
-  # the same is true for the readsReference input
-  if(any(class(readsReference) != "list"))
-    readsReference <- list(readsReference)
+    # number of reads with the alternative allele is simply the total number of reads per individual minus the number of reads
+    # with the reference allele for that individual
+    readsAlternative <- lapply(1:nLoci, function(locus)
+      mapply(function(individual, reference) FUN = individual - reference, SIMPLIFY = FALSE,
+             individual = indContribution[[locus]], reference = readsReference[[locus]]))
 
-  # number of reads with the alternative allele is simply the total number of reads per individual minus the number of reads
-  # with the reference allele for that individual
-  readsAlternative <- lapply(1:nLoci, function(locus)
-    mapply(function(individual, reference) FUN = individual - reference, SIMPLIFY = FALSE,
-           individual = indContribution[[locus]], reference = readsReference[[locus]]))
+  } else {
+
+    # when dealing with a single locus it's possible that the indContribution input is not on the correct format
+    if(nLoci == 1 && length(indContribution) == nPops | any(class(indContribution) != "list"))
+      indContribution <- list(indContribution)
+
+    # the same is true for the readsReference input
+    if(nLoci == 1 && length(readsReference) == nPops | any(class(readsReference) != "list"))
+      readsReference <- list(readsReference)
+
+    # number of reads with the alternative allele is simply the total number of reads per individual minus the number of reads
+    # with the reference allele for that individual
+    readsAlternative <- lapply(1:nLoci, function(locus)
+      mapply(function(individual, reference) FUN = individual - reference, SIMPLIFY = FALSE,
+             individual = indContribution[[locus]], reference = readsReference[[locus]]))
+  }
 
   # now, since each entry (each locus) has independent entries for each population, we can simple perform colSums across the
   # various entries. This will sum the number of reads (with the reference, the alternative and the total number of reads)
@@ -2602,4 +2614,453 @@ simPoolseq <- function(genotypes, pools, pError, sError, mCov, vCov, min.minor, 
 
   # output Pool-seq data
   pool
+}
+
+#' Create vcf string for a single SNP
+#'
+#' Creates a string with the information for a single SNP. The information is
+#' coded as R,A:DP. R is the number of reads of the reference allele, A is the
+#' number of reads of the alternative allele and DP is the total depth of
+#' coverage.
+#'
+#' @param reference an integer representing the number of reads with the
+#'   reference allele
+#' @param alternative an integer representing the number of reads with the
+#'   alternative allele
+#' @param total an integer representing the total number of reads observed at
+#'   this SNP.
+#'
+#' @return a character string coded as R,A:DP.
+#'
+#' @keywords internal
+#'
+#' @export
+strg2vcf <- function(reference, alternative, total) {
+
+  # create a string with the information for the vcf file
+  paste(paste(reference, alternative, sep = ","), ":", total, sep = "")
+}
+
+
+#' Create vcf string for all SNPs in a single locus
+#'
+#' Creates a string with the information for all SNPs. The information is coded
+#' as R,A:DP. R is the number of reads of the reference allele, A is the number
+#' of reads of the alternative allele and DP is the total depth of coverage.
+#' Each entry of the character string corresponds to a different SNP.
+#'
+#' @param reference is a vector with the number of reads with the reference
+#'   allele. Each entry of the vector corresponds to a different SNP.
+#' @param alternative is a vector with the number of reads with the alternative
+#'   allele. Each entry of the vector corresponds to a different SNP.
+#' @param total is a vector with the total number of reads observed at each SNP.
+#'   Each entry of the vector corresponds to a different SNP.
+#'
+#' @return is a character vector with as many entries as the number of SNPs in
+#'   the locus. Each entry of this character vector contains the information for
+#'   a single SNP coded as R,A:DP.
+#'
+#' @keywords internal
+#'
+#' @export
+vcflocus <- function(reference, alternative, total) {
+
+  # check if the input is a single locus or not
+  if(any(class(reference) == "list") && length(reference) != 1)
+    stop("Data should be a single locus. Please check")
+
+  # check if the reference input is a list and unlist it if it is
+  if(any(class(reference) == "list"))
+    reference <- unlist(reference)
+  # do the same for the alternative input
+  if(any(class(alternative) == "list"))
+    alternative <- unlist(alternative)
+  # and for the total input
+  if(any(class(total) == "list"))
+    total <- unlist(total)
+
+  # get the number of SNPs in this locus
+  nSNP <- length(reference)
+
+  # create a string with the information in the format for the vcf file for each SNP
+  out <- sapply(1:nSNP, FUN = function(i)
+    strg2vcf(reference = reference[i], alternative = alternative[i], total = total[i]))
+
+  # output the string for each SNP
+  out
+}
+
+
+#' Create vcf string for all SNPs in multiple loci
+#'
+#' Creates a string with the information for all SNPs across multiple loci. The
+#' information is coded as R,A:DP. R is the number of reads of the reference
+#' allele, A is the number of reads of the alternative allele and DP is the
+#' total depth of coverage. Each entry of the character string corresponds to a
+#' different SNP and each entry of the list to a different locus.
+#'
+#' @param reference is a list where each entry corresponds to a different locus.
+#'   Each list entry is a vector with the number of reads with the reference
+#'   allele. Each entry of the vector corresponds to a different SNP.
+#' @param alternative is a list where each entry corresponds to a different
+#'   locus. Each list entry is a vector with the number of reads with the
+#'   alternative allele. Each entry of the vector corresponds to a different
+#'   SNP.
+#' @param total is a list where each entry corresponds to a different locus.
+#'   Each list entry is a vector with the total number of reads observed at each
+#'   SNP. Each entry of the vector corresponds to a different SNP.
+#'
+#' @return is a list where each entry corresponds to a different locus. Each
+#'   entry of the list is a character vector with as many entries as the number
+#'   of SNPs in the locus. Each entry of this character vector contains the
+#'   information for a single SNP coded as R,A:DP.
+#'
+#' @keywords internal
+#'
+#' @export
+vcfloci <- function(reference, alternative, total) {
+
+  # check if the input contains more than one locus or not
+  if(any(class(reference) == "list") && length(reference) == 1)
+    stop("Data should include more than one locus. Please check")
+
+  # get the number of loci in the input
+  nloci <- length(reference)
+
+  # create a string with the information in the format for the vcf file for each loci and for each SNP
+  out <- sapply(1:nloci, FUN = function(i)
+    vcflocus(reference = reference[i], alternative = alternative[i], total = total[i]))
+
+  # output the string for each loci and each SNP
+  out
+}
+
+
+#' Create vcf table with relevant information
+#'
+#' Creates a data frame in the VCF format for all SNPs and across all loci in
+#' the data set.
+#'
+#' This function combines the information coded as R,A:DP with other necessary
+#' information such as the chromosome of each SNP, the position of the SNP and
+#' the quality of the genotype among others. Note that in the character string,
+#' R is the number of reads of the reference allele, A is the number of reads of
+#' the alternative allele and DP is the total depth of coverage. Each row of the
+#' data frame corresponds to a different SNP.
+#'
+#' @param string is a character vector or a list where each entry contains a
+#'   character vector for a different locus. Each entry of this character vector
+#'   contains the information for a single SNP coded as R,A:DP. The output of
+#'   the \code{\link{vcflocus}} or \code{\link{vcfloci}} is the intended input
+#'   here.
+#' @param pos is an optional input (default is NULL). If the actual position of
+#'   the SNPs are known, they can be used as input here. When working with a
+#'   single locus, this should be a numeric vector with each entry corresponding
+#'   to the position of each SNP. If the data has multiple loci, this should be
+#'   a list where each entry is a numeric vector with the position of the SNPs
+#'   for a different locus.
+#'
+#' @return a data frame with 10 different columns
+#'
+#'   \item{chr}{Chromosome. Each locus is treated as different linkage group.}
+#'
+#'   \item{pos}{Co-ordinate. The coordinate of the SNP.}
+#'
+#'   \item{ID}{Identifier.}
+#'
+#'   \item{REF}{Reference allele. We assume that the reference allele is always
+#'   an A. Note that this is not necessarily the major allele.}
+#'
+#'   \item{ALT}{Alternative allele. We assume that the alternative allele is always
+#'   a T.}
+#'
+#'   \item{QUAL}{Quality score out of 100. We assume that this score is always
+#'   100.}
+#'
+#'   \item{FILTER}{If this SNP passed quality filters.}
+#'
+#'   \item{INFO}{Further information. Provides further information on the
+#'   variants.}
+#'
+#'   \item{FORMAT}{Information about the following columns. This column tells us
+#'   how the number of reads is coded in the next column.}
+#'
+#'   \item{pop1}{Number of reference-allele reads, alternative-allele reads and
+#'   total depth of coverage observed for this population at this SNP.}
+#'
+#' @keywords internal
+#'
+#' @export
+vcfinfo <- function(string, pos = NULL) {
+
+  # check if the string input is not a list - this should mean that we are dealing with a single locus
+  if(any(class(string) != "list")) {
+
+    # create the string with the chromosome information - this single locus corresponds to linkage group (LG) 1
+    chr <- rep("LG1", length(string))
+    # create a string with the information about the position of each SNP
+    pos <- 1:length(string)
+    # create a string with the ID information
+    ID <- rep(".", length(string))
+    # create a string with the base of the reference allele
+    REF <- rep("A", length(string))
+    # create a string with the base of the alternative allele
+    ALT <- rep("T", length(string))
+    # create a string with the quality information
+    QUAL <- rep(100, length(string))
+    # create a string with the filter information
+    FILTER <- rep(".", length(string))
+    # create a string with the INFO
+    INFO <- rep(".", length(string))
+    # create a string with the FORMAT
+    FORMAT <- rep("AD:DP", length(string))
+
+    # create a data frame with the information
+    out <- data.frame(chr = chr, pos = pos, ID = ID, REF = REF, ALT = ALT, QUAL = QUAL, FILTER = FILTER,
+                      INFO = INFO, FORMAT = FORMAT, pop1 = string)
+  }
+
+  # check if the string input is a list - this should mean that we are dealing with multiple loci
+  if(any(class(string) == "list")) {
+
+    # get the number of loci in the input
+    nloci <- length(string)
+
+    # create the string with the chromosome information - each locus corresponds to a linkage group (LG)
+    chr <- sapply(1:nloci, function(l) paste(rep("LG", length(string[[l]])), l, sep = ""))
+    # create a string with the information about the position of each SNP at each locus
+    pos <- sapply(1:nloci, function(l) 1:sapply(string, length)[l])
+    # create a string with the ID information
+    ID <- sapply(1:nloci, function(l) rep(".", length(string[[l]])))
+    # create a string with the base of the reference allele
+    REF <- sapply(1:nloci, function(l) rep("A", length(string[[l]])))
+    # create a string with the base of the alternative allele
+    ALT <- sapply(1:nloci, function(l) rep("T", length(string[[l]])))
+    # create a string with the quality information
+    QUAL <- sapply(1:nloci, function(l) rep(100, length(string[[l]])))
+    # create a string with the filter information
+    FILTER <- sapply(1:nloci, function(l) rep(".", length(string[[l]])))
+    # create a string with the INFO
+    INFO <- sapply(1:nloci, function(l) rep(".", length(string[[l]])))
+    # create a string with the FORMAT
+    FORMAT <- sapply(1:nloci, function(l) rep("AD:DP", length(string[[l]])))
+
+    # create a data frame with the information
+    out <- data.frame(chr = unlist(chr), pos = unlist(pos), ID = unlist(ID), REF = unlist(REF), ALT = unlist(ALT), QUAL = unlist(QUAL),
+                      FILTER = unlist(FILTER), INFO = unlist(INFO), FORMAT = unlist(FORMAT), pop1 = unlist(string))
+  }
+
+  # output the vcf string together with the remaining information
+  out
+}
+
+
+#' Create VCF file from Pool-seq data
+#'
+#' Creates and saves a file with the information from Pool-seq data coded in the
+#' VCF format.
+#'
+#' It starts by converting the number of reads with the \code{reference} allele,
+#' the \code{alternative} allele and the \code{total} depth of coverage to a
+#' R,A:DP string. R is the number of reads of the reference allele, A is the
+#' number of reads of the alternative allele and DP is the total depth of
+#' coverage.
+#'
+#' Then, this information coded as R,A:DP is combined with other necessary
+#' information such as the chromosome of each SNP, the position of the SNP and
+#' the quality of the genotype among others. This creates a data frame where
+#' each row corresponds to a different SNP.
+#'
+#' A \code{file} is then created and saved in the current working directory,
+#' with the header lines that go above the table in a VCF file. Finally, the
+#' data frame is appended to that file.
+#'
+#' @param reference is a list where each entry corresponds to a different locus.
+#'   Each list entry is a vector with the number of reads with the reference
+#'   allele. Each entry of the vector corresponds to a different SNP. This list
+#'   can have a single entry if the data is comprised of a single locus.
+#' @param alternative is a list where each entry corresponds to a different
+#'   locus. Each list entry is a vector with the number of reads with the
+#'   alternative allele. Each entry of the vector corresponds to a different
+#'   SNP. This list can have a single entry if the data is comprised of a single
+#'   locus.
+#' @param total is a list where each entry corresponds to a different locus.
+#'   Each list entry is a vector with the total number of reads observed at each
+#'   SNP. Each entry of the vector corresponds to a different SNP. This list can
+#'   have a single entry if the data is comprised of a single locus.
+#' @param file is a character string naming the file to write to.
+#'
+#' @return a file in the current working directory containing Pool-seq data in
+#'   the VCF format.
+#'
+#' @examples
+#' # simulate Pool-seq data for 100 individuals sampled at a single locus
+#' genotypes <- run_scrm(nDip = 100, nloci = 1, theta = 5)
+#' # simulate Pool-seq data assuming a coverage of 100x and two pools of 50 individuals each
+#' pool <- simPoolseq(genotypes = genotypes, pools = c(50, 50), pError = 100, sError = 0.001,
+#' mCov = 100, vCov = 250, min.minor = 0)
+#' # create a vcf file of the simulated data
+#' pool2vcf(reference = pool$reference, alternative = pool$alternative, total = pool$total,
+#' file = "myvcf.txt")
+#'
+#' # simulate Pool-seq data for 10 individuals sampled at 5 loci
+#' genotypes <- run_scrm(nDip = 10, nloci = 5, theta = 5)
+#' # simulate Pool-seq data assuming a coverage of 100x and a single pool of 10 individuals
+#' pool <- simPoolseq(genotypes = genotypes, pools = 10, pError = 100, sError = 0.001,
+#' mCov = 100, vCov = 250, min.minor = 0)
+#' # create a vcf file of the simulated data
+#' pool2vcf(reference = pool$reference, alternative = pool$alternative, total = pool$total,
+#' file = "myvcf.txt")
+#'
+#' @export
+pool2vcf <- function(reference, alternative, total, file) {
+
+  # check if the input has a single locus and use the appropriate function
+  if(any(class(reference) == "list") && length(reference) == 1)
+    vcftemp <- vcflocus(reference, alternative, total)
+
+  # check if the input has multiple loci and use the appropriate function
+  if(any(class(reference) == "list") && length(reference) != 1)
+    vcftemp <- vcfloci(reference, alternative, total)
+
+  # create a VCF table with relevant information
+  vcftemp <- vcfinfo(string = vcftemp)
+
+  # create the header lines to be placed above the table
+  myformat <- paste("##fileformat=VCFv4.1
+##source=\"PoolHelper R package simulation of PoolSeq data - reference coded always as A, alternative as T. QUAL set to 100\"
+##FORMAT=<ID=AD,Number=.,Type=Integer,Description=\"Allelic depths for the ref and alt alleles in the order listed\">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Approximate read depth (reads with MQ=255 or with bad mates are filtered)\">
+#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tpop1", sep = "")
+
+  # write the header of vcf file
+  write(x = myformat, file = file)
+  # append the info about each site for vcf file
+  utils::write.table(x = vcftemp, file = file, append = TRUE, quote = FALSE, row.names = FALSE, col.names = FALSE)
+}
+
+
+#' Create sync string for a single SNP
+#'
+#' Creates a string with the information for a single SNP. The information is
+#' coded as A-count:T-count:C-count:G-count:N-count:deletion-count. Note that we
+#' assume that the reference allele is always A and the alternative is always T.
+#'
+#' @param reference an integer representing the number of reads with the
+#'   reference allele.
+#' @param alternative an integer representing the number of reads with the
+#'   alternative allele.
+#'
+#' @return a character string coded as
+#'   A-count:T-count:C-count:G-count:N-count:deletion-count.
+#'
+#' @keywords internal
+#'
+#' @export
+strg2sync <- function(reference, alternative) {
+
+  # create a string with the information for the sync file
+  paste(reference, alternative, 0, 0, 0, 0, sep = ":")
+}
+
+
+#' Create 'synchronized' file from Pool-seq data
+#'
+#' Creates and saves a file with the information from Pool-seq data coded in the
+#' 'synchronized' format.
+#'
+#' It starts by converting the number of reads with the \code{reference} allele
+#' and the \code{alternative} allele to a
+#' A-count:T-count:C-count:G-count:N-count:deletion-count string. Here, we
+#' assume that the reference allele is always A and the alternative is always T.
+#'
+#' Then, this A-count:T-count:C-count:G-count:N-count:deletion-count string is
+#' combined with other necessary information such as the chromosome of each SNP,
+#' the position of the SNP and the reference character. This step creates a data
+#' frame where each row corresponds to a different SNP.
+#'
+#' A \code{file} is then created and saved in the current working directory,
+#' with the Pool-seq data coded in the 'synchronized' file format.
+#'
+#' @param reference is a list where each entry corresponds to a different locus.
+#'   Each list entry is a vector with the number of reads with the reference
+#'   allele. Each entry of the vector corresponds to a different SNP. This list
+#'   can have a single entry if the data is comprised of a single locus.
+#' @param alternative is a list where each entry corresponds to a different
+#'   locus. Each list entry is a vector with the number of reads with the
+#'   alternative allele. Each entry of the vector corresponds to a different
+#'   SNP. This list can have a single entry if the data is comprised of a single
+#'   locus.
+#' @param file is a character string naming the file to write to.
+#'
+#' @return a file in the current working directory containing Pool-seq data in
+#'   the 'synchronized' format.
+#'
+#' @examples
+#' # simulate Pool-seq data for 100 individuals sampled at a single locus
+#' genotypes <- run_scrm(nDip = 100, nloci = 1, theta = 5)
+#' # simulate Pool-seq data assuming a coverage of 100x and two pools of 50 individuals each
+#' pool <- simPoolseq(genotypes = genotypes, pools = c(50, 50), pError = 100, sError = 0.001,
+#' mCov = 100, vCov = 250, min.minor = 0)
+#' # create a 'synchronized' file of the simulated data
+#' pool2sync(reference = pool$reference, alternative = pool$alternative, file = "mysync.txt")
+#'
+#' # simulate Pool-seq data for 10 individuals sampled at 5 loci
+#' genotypes <- run_scrm(nDip = 10, nloci = 5, theta = 5)
+#' # simulate Pool-seq data assuming a coverage of 100x and a single pool of 10 individuals
+#' pool <- simPoolseq(genotypes = genotypes, pools = 10, pError = 100, sError = 0.001,
+#' mCov = 100, vCov = 250, min.minor = 0)
+#' # create a 'synchronized' file of the simulated data
+#' pool2sync(reference = pool$reference, alternative = pool$alternative, file = "mysync.txt")
+#'
+#' @export
+pool2sync <- function(reference, alternative, file) {
+
+  # check if the input is a single locus or not
+  if(any(class(reference) == "list") && length(reference) == 1) {
+
+    # check if the reference input is a list and unlist it if it is
+    if(any(class(reference) == "list"))
+      reference <- unlist(reference)
+    # do the same for the alternative input
+    if(any(class(alternative) == "list"))
+      alternative <- unlist(alternative)
+
+    # create the string with the chromosome information - this single locus corresponds to linkage group (LG) 1
+    chr <- rep("LG1", length(reference))
+    # create a string with the information about the position of each SNP
+    pos <- 1:length(reference)
+    # create a string with the base of the reference allele
+    REF <- rep("A", length(reference))
+
+    # code the allele frequencies in the sync format
+    freqs <- sapply(1:length(reference), function(i) strg2sync(reference = reference[i], alternative = alternative[i]))
+
+    # create a data frame with the reference contig, position in the reference contig, reference character and allele frequencies
+    mydf <- data.frame(chr, pos, REF, freqs)
+  }
+
+  # if the input has more than one locus
+  if(any(class(reference) == "list") && length(reference) != 1) {
+
+    # get the number of loci in the input
+    nloci <- length(reference)
+
+    # create the string with the chromosome information - each locus corresponds to a linkage group (LG)
+    chr <- unlist(sapply(1:nloci, function(l) paste(rep("LG", length(reference[[l]])), l, sep = "")))
+    # create a string with the information about the position of each SNP at each locus
+    pos <- unlist(sapply(1:nloci, function(l) 1:sapply(reference, length)[l]))
+    # create a string with the base of the reference allele
+    REF <- unlist(sapply(1:nloci, function(l) rep("A", length(reference[[l]]))))
+
+    # code the allele frequencies in the sync format
+    freqs <- unlist(sapply(1:nloci, function(l) sapply(1:length(reference[[l]]), function(i)
+      strg2sync(reference = reference[[l]][i], alternative = alternative[[l]][i]))))
+
+    # create a data frame with the reference contig, position in the reference contig, reference character and allele frequencies
+    mydf <- data.frame(chr, pos, REF, freqs)
+  }
+
+  # write the Pool-seq data in the 'synchronized' format
+  utils::write.table(x = mydf, file = file, quote = FALSE, row.names = FALSE, col.names = FALSE)
 }
