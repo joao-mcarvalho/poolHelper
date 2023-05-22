@@ -6,6 +6,7 @@
 ### Bugfixes
 
 - replaced usage of class function calls by inherits
+- updated the function that computes probability of contribution for each pool (22-05-2023)
 
 ### NEWS.md setup
 

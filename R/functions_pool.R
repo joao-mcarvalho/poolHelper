@@ -1466,6 +1466,8 @@ poolProbs <- function(nPools, vector_np, nSNPs, pError) {
     stop(paste("The nPools input is", paste(nPools), "and so, the length of the size vector should also be",
                paste(nPools, ".", sep = ""), "Please check"))
 
+  # set k - total number of pools
+  k <- nPools
   # the total number of individuals in the population (n) can be obtained by adding the individuals in all pools
   n <- sum(vector_np)
 
@@ -1473,7 +1475,7 @@ poolProbs <- function(nPools, vector_np, nSNPs, pError) {
   pError <- pError/100
 
   # if we use Dir(rho*np/n), then the alpha_i for Dirichlet can be written as
-  numerator <- (n - 1 - (pError^2))*vector_np
+  numerator <- (k - 1 - (pError^2))*vector_np
   denominator <- n*(pError^2)
   alpha <- numerator/denominator
 
