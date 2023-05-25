@@ -70,10 +70,6 @@ test_that("sites are correctly removed from a matrix", {
                expected = matrix(c(110, 120, 125, 130, 140, 150), nrow = 2))
 })
 
-test_that("alpha is corrected", {
-  expect_equal(object = set_alpha(alpha_i = 0.00001), expected = 0.01)
-})
-
 test_that("pool probablities sum to one", {
   expect_equal(object = colSums(poolProbs(nPools = 5, vector_np = rep(10, 5), nSNPs = 5, pError = 50)),
                expected = rep(x = 1, 5))

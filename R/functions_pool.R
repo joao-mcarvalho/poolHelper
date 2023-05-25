@@ -1390,39 +1390,6 @@ remove_by_reads <- function(nLoci, reads, minimum, maximum, genotypes = NA) {
 }
 
 
-#' Correct alpha value
-#'
-#' This function corrects the alpha value of the Dirichlet distribution used to
-#' simulate the probability of contribution of different pools and individuals.
-#'
-#' The alpha value corresponds to the vector of shape parameters of the
-#' Dirichlet distribution. When the alpha is very small, the random generation
-#' of numbers from the Dirichlet distribution produces `NaN`. Thus, this
-#' function replaces small values of alpha with a minimum threshold value to
-#' avoid that.
-#'
-#' @param alpha_i is a vector of shape parameters for the Dirichlet
-#'   distribution.
-#'
-#' @return a vector of corrected shape parameters for the Dirichlet
-#'   distribution. Very small values are replaced by a minimum value.
-#'
-#' @keywords internal
-#'
-#' @export
-set_alpha <- function(alpha_i) {
-
-  # define threshold for the minimum alpha value
-  min.alpha <- 1e-2
-
-  # if any value of alpha_i is below the minimum allowed value, set alpha to min.alpha value
-  alpha_i[alpha_i < min.alpha] <- min.alpha
-
-  # output the alpha_i for the Dirichlet distribution
-  alpha_i
-}
-
-
 #' Probability of contribution of each pool
 #'
 #' This function computes the probability of contribution of each pool towards
@@ -1452,8 +1419,9 @@ set_alpha <- function(alpha_i) {
 #' @export
 poolProbs <- function(nPools, vector_np, nSNPs, pError) {
 
-  # Now, we need to calculate the probability of contributing for each individual - in each population
-  # This package contains a function to perform random draws from a Dirichlet distribution
+  # calculate the probability of contributing for each individual - in each population
+  # set the minimum threshold value of alpha
+  min.alpha <- 0.01
 
   # check if we are dealing with a single population - this function should be used on a single population
   # also check if the input is on the correct format
@@ -1474,16 +1442,62 @@ poolProbs <- function(nPools, vector_np, nSNPs, pError) {
   # pooling error is defined in % - change this to a proportion
   pError <- pError/100
 
-  # if we use Dir(rho*np/n), then the alpha_i for Dirichlet can be written as
-  numerator <- (k - 1 - (pError^2))*vector_np
-  denominator <- n*(pError^2)
-  alpha <- numerator/denominator
+  # if pools have different sizes
+  if(length(unique(vector_np)) != 1) {
 
-  # check, and correct if needed, if any alpha_i value is above or below the threshold
-  alpha <- set_alpha(alpha_i = alpha)
+    # compute rho for the smallest pool using ns - n of the smallest pool
+    ns <- min(vector_np)
 
-  # use a Dirichlet distribution to get the probability of contribution for each pool across all sites
-  probs <- t(MCMCpack::rdirichlet(n = nSNPs, alpha = alpha))
+    # check if the error is too high for this number of pools
+    if(sqrt((n/ns)-1) < pError) {
+      # if the error is too high, replace it by a maximum pool error
+      tmp <- round((sqrt((n/ns)-1)*100) - 10)
+      # replace the error
+      pError <- sqrt((n/ns)-1) - 0.1
+      # output a warning with the new error
+      warning(paste("pError was too high. It was replaced by", tmp), call. = FALSE)
+    }
+
+    # compute rho for that pool
+    rho <- ((n/ns)-1-pError^2)/pError^2
+
+    # if we use Dir(ρ*np/n), then the alpha_i for Dirichlet can be written as
+    alpha <- rho*(vector_np/n)
+
+    # check if any alpha is negative
+    if(any(alpha < 0))
+      stop("The sum(vector_np) divided by vector_np should be larger than 1. Please check!",
+           call. = FALSE)
+
+  } else { # if all pools have the same size
+
+    # check if the error is too high for this number of pools
+    if(sqrt(k-1) < pError) {
+      # if the error is too high, replace it by a maximum pool error
+      tmp <- (sqrt(k-1)*100) - 10
+      # replace the error
+      pError <- sqrt(k-1) - 0.1
+      # output a warning with the new error
+      warning(paste("pError was too high. It was replaced by", tmp), call. = FALSE)
+    }
+
+    # calculate rho
+    rho <- ((k-1)/pError^2) - 1
+    # if we use Dir(ρ*np/n), then the alpha_i for Dirichlet can be written as
+    alpha <- rho*(vector_np/n)
+  }
+
+  # if alpha is smaller than the minimum threshold - this mainly happens with high pool errors
+  if(all(alpha < min.alpha)) {
+
+    # alternatively, use a multinomial to sample a contribution of 1 for a random pool per site
+    probs <- stats::rmultinom(n = nSNPs, size = 1, prob = rep(1, k))
+
+  } else {
+
+    # use a Dirichlet distribution to get the probability of contribution for each pool across all sites
+    probs <- t(MCMCpack::rdirichlet(n = nSNPs, alpha = alpha))
+  }
 
   # output the probability of contributing for each pool
   probs
@@ -1565,16 +1579,27 @@ poolReads <- function(nPools, coverage, probs) {
 #' @export
 indProbs <- function(np, nSNPs, pError) {
 
+  # set the minimum threshold value of alpha
+  min.alpha <- 0.01
+
   # pooling error is defined in % - change this to a proportion
   pError <- pError/100
 
-  # if we use Dir(rho/np), then the alpha_i for Dirichlet can be written as
-  numerator <- (np - 1 - (pError^2))
-  denominator <- np*(pError^2)
-  alpha <- numerator/denominator
+  # check if the error is too high for this number of individuals
+  if(sqrt(np-1) <= pError) {
+    # if the error is too high, replace it by a maximum pool error
+    tmp <- (sqrt(np-1)*100) - 10
+    # replace the error
+    pError <- sqrt(np-1) - 0.1
+    # output a warning with the new error
+    warning(paste("pError was too high. It was replaced by", tmp), call. = FALSE)
+  }
 
-  # check, and correct if needed, if any alpha_i value is above or below the threshold
-  alpha <- set_alpha(alpha_i = alpha)
+  # compute rho for individuals inside a single pool
+  rho <- ((np-1)/(pError^2)) - 1
+
+  # if we use Dir(rho/np), then the alpha_i for Dirichlet can be written as
+  alpha <- rho/np
 
   # use a dirichlet distribution to get the probability of contribution for each individual across all sites
   probs <- t(MCMCpack::rdirichlet(n = nSNPs, alpha = rep(alpha, times = np)))
