@@ -2268,9 +2268,6 @@ poolPops <- function(nPops, nLoci, indContribution, readsReference) {
 #'   be a different population and each column a different site. Thus, each
 #'   entry of the matrix contains the total number of observed reads for that
 #'   population at a given site.
-#' @param min.minor is an integer representing the minimum allowed number of
-#'   minor-allele reads. Sites that, across all populations, have less
-#'   minor-allele reads than this threshold will be removed from the data.
 #'
 #' @return a list with three names entries
 #'
@@ -2312,7 +2309,7 @@ poolPops <- function(nPops, nLoci, indContribution, readsReference) {
 #' coverage = pools$total[[1]])
 #'
 #' @export
-findMinor <- function(reference, alternative, coverage, min.minor = NA) {
+findMinor <- function(reference, alternative, coverage) {
 
   # set the output for the situations where there is no SNP at the locus
   # check for NAs in one of the matrices
@@ -2345,6 +2342,120 @@ findMinor <- function(reference, alternative, coverage, min.minor = NA) {
 }
 
 
+#' Filter sites according to a minor-allele reads threshold
+#'
+#' Removes sites from matrices with counts of reads. If a site has less
+#' minor-allele reads than \code{min.minor} across all populations, that site is
+#' removed from the data.
+#'
+#' @param reference a matrix with the number of reads with the reference allele.
+#'   Each row should be a different population and each column a different site.
+#' @param alternative a matrix with the number of reads with the alternative
+#'   allele. Each row should be a different population and each column a
+#'   different site.
+#' @param coverage is a matrix of total coverage. Each row of the matrix should
+#'   be a different population and each column a different site. Thus, each
+#'   entry of the matrix contains the total number of observed reads for that
+#'   population at a given site.
+#' @param min.minor is an integer representing the minimum allowed number of
+#'   minor-allele reads. Sites that, across all populations, have less
+#'   minor-allele reads than this threshold will be removed from the data.
+#'
+#' @return a list with three named entries:
+#'
+#'   \item{reference}{a list with one entry per locus. Each entry is a matrix with
+#'   the number of reference allele reads. Each column represents a different site.}
+#'
+#'   \item{alternative}{a list with one entry per locus. Each entry is a matrix with
+#'   the number of alternative allele reads. Each column represents a different site.}
+#'
+#'   \item{total}{a list with one entry per locus. Each entry is a matrix with
+#'   the total depth of coverage. Each column represents a different site.}
+#'
+#' @keywords internal
+#'
+#' @export
+filterMinor <- function(reference, alternative, coverage, min.minor) {
+
+  # check which of the two simulated alleles (reference or alternative) corresponds to the minor allele
+  tminor <- findMinor(reference = reference, alternative = alternative, coverage = coverage)
+
+  # get the total number of minor allele reads in the data
+  tminor <- colSums(tminor[["minor"]])
+  # find out in which columns the total sum of the reads with the minor allele is below the threshold
+  toremove <- tminor < min.minor
+
+  # if there are sites where the sum of the reads with the minor allele is below the threshold
+  if(sum(toremove) != 0) {
+
+    # remove those columns from the matrix containing the depth of coverage
+    coverage <- coverage[, !toremove, drop = FALSE]
+    # remove those columns from the matrix containing the number of reads with the alternative allele
+    alternative <- alternative[, !toremove, drop = FALSE]
+    # and remove those columns from the matrix containing the number of reads with the reference allele
+    reference <- reference[, !toremove, drop = FALSE]
+  }
+
+  # create the output containing the sites with reads above the min.minor threshold
+  out <- list(reference = reference, alternative = alternative, total = coverage)
+
+  # output the results of the function
+  out
+}
+
+
+#' Filter Pool-seq data according to a minor-allele reads threshold
+#'
+#' Removes sites from Pool-seq data. If a site has less minor-allele reads than
+#' \code{min.minor} across all populations, that site is removed from the data.
+#'
+#' @param pool a list containing the "reference" element, representing the
+#'   number of reads with the reference allele, the "alternative" element
+#'   representing the number of reads with the alternative allele and the
+#'   "total" element that contains information about the total number of reads.
+#' @param nloci an integer that represents the total number of independent loci
+#'   in the dataset.
+#' @param min.minor is an integer representing the minimum allowed number of
+#'   minor-allele reads. Sites that, across all populations, have less
+#'   minor-allele reads than this threshold will be removed from the data.
+#'
+#' @return a list with three named entries:
+#'
+#'   \item{reference}{a list with one entry per locus. Each entry is a matrix with
+#'   the number of reference allele reads. Each column represents a different site.}
+#'
+#'   \item{alternative}{a list with one entry per locus. Each entry is a matrix with
+#'   the number of alternative allele reads. Each column represents a different site.}
+#'
+#'   \item{total}{a list with one entry per locus. Each entry is a matrix with
+#'   the total depth of coverage. Each column represents a different site.}
+#'
+#' @keywords internal
+#'
+#' @export
+filterPool <- function(pool, nloci, min.minor) {
+
+  # check if we are using the correct input
+  if(any(names(pool) != c("reference", "alternative", "total")))
+    stop("Using an incorrect Pool-seq data list. Please check!")
+
+  # filter sites according to the number of minor allele reads
+  # keep only sites with reads above the min.minor threshold
+  pool <- lapply(1:nloci, function(locus)
+    filterMinor(reference = pool$reference[[locus]], alternative = pool$alternative[[locus]],
+                coverage = pool$total[[locus]], min.minor = min.minor))
+
+  # convert the pool list back to the correct format:
+  # one entry for reference reads, one for alternative reads and a final one for total coverage
+  pool <- list(reference = lapply(pool, function(locus) locus[["reference"]]),
+               alternative = lapply(pool, function(locus) locus[["alternative"]]),
+               total = lapply(pool, function(locus) locus[["total"]]))
+
+  # output the results of the function
+  pool
+}
+
+
 #' Calculate population frequency at each SNP
 #'
 #' The frequency at a given SNP is calculated according to: `pi = c/r`, where c
@@ -2360,7 +2471,7 @@ findMinor <- function(reference, alternative, coverage, min.minor = NA) {
 #'
 #' @param listPool a list containing the "minor" element, representing the
 #'   number of reads with the minor-allele and the "total" element that contains
-#'   information about the total number of Reads. The list should also contain a
+#'   information about the total number of reads. The list should also contain a
 #'   "major" entry with the information about reads containing the major-allele.
 #'   The output of the `poolPops` function should be used as input here.
 #' @param nLoci an integer that represents the total number of independent loci
@@ -2638,6 +2749,10 @@ simPoolseq <- function(genotypes, pools, pError, sError, mCov, vCov, min.minor, 
 
   # simulate pooled sequencing data
   pool <- poolPops(nPops = 1, nLoci = nloci, indContribution = indContribution, readsReference = reference)
+
+  # if a minimum minor-allele reads threshold is defined
+  if(min.minor != 0)
+    pool <- filterPool(pool = pool, nloci = nloci, min.minor = min.minor)
 
   # output Pool-seq data
   pool

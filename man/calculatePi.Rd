@@ -9,7 +9,7 @@ calculatePi(listPool, nLoci)
 \arguments{
 \item{listPool}{a list containing the "minor" element, representing the
 number of reads with the minor-allele and the "total" element that contains
-information about the total number of Reads. The list should also contain a
+information about the total number of reads. The list should also contain a
 "major" entry with the information about reads containing the major-allele.
 The output of the \code{poolPops} function should be used as input here.}
 

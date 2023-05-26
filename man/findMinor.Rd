@@ -4,7 +4,7 @@
 \alias{findMinor}
 \title{Define major and minor alleles}
 \usage{
-findMinor(reference, alternative, coverage, min.minor = NA)
+findMinor(reference, alternative, coverage)
 }
 \arguments{
 \item{reference}{is a matrix of reference allele reads. Each row of the
@@ -21,10 +21,6 @@ the alternative allele for that population at a given site.}
 be a different population and each column a different site. Thus, each
 entry of the matrix contains the total number of observed reads for that
 population at a given site.}
-
-\item{min.minor}{is an integer representing the minimum allowed number of
-minor-allele reads. Sites that, across all populations, have less
-minor-allele reads than this threshold will be removed from the data.}
 }
 \value{
 a list with three names entries
