@@ -3053,18 +3053,19 @@ vcfinfo <- function(string, pos = NULL) {
 #' # simulate Pool-seq data assuming a coverage of 100x and two pools of 50 individuals each
 #' pool <- simPoolseq(genotypes = genotypes, pools = c(50, 50), pError = 100, sError = 0.001,
 #' mCov = 100, vCov = 250, min.minor = 0)
-#' # create a vcf file of the simulated data
-#' pool2vcf(reference = pool$reference, alternative = pool$alternative, total = pool$total,
-#' file = "myvcf.txt")
+#' # create a vcf file of the simulated data - this will create a txt file
+#' # pool2vcf(reference = pool$reference, alternative = pool$alternative,
+#' # total = pool$total, file = "myvcf.txt")
 #'
 #' # simulate Pool-seq data for 10 individuals sampled at 5 loci
 #' genotypes <- run_scrm(nDip = 10, nloci = 5, theta = 5)
 #' # simulate Pool-seq data assuming a coverage of 100x and a single pool of 10 individuals
 #' pool <- simPoolseq(genotypes = genotypes, pools = 10, pError = 100, sError = 0.001,
 #' mCov = 100, vCov = 250, min.minor = 0)
-#' # create a vcf file of the simulated data
-#' pool2vcf(reference = pool$reference, alternative = pool$alternative, total = pool$total,
-#' file = "myvcf.txt")
+#'
+#' # create a vcf file of the simulated data - this will create a txt file
+#' # pool2vcf(reference = pool$reference, alternative = pool$alternative,
+#' # total = pool$total, file = "myvcf.txt")
 #'
 #' @export
 pool2vcf <- function(reference, alternative, total, file, pos = NULL) {
@@ -3162,16 +3163,17 @@ strg2sync <- function(reference, alternative) {
 #' # simulate Pool-seq data assuming a coverage of 100x and two pools of 50 individuals each
 #' pool <- simPoolseq(genotypes = genotypes, pools = c(50, 50), pError = 100, sError = 0.001,
 #' mCov = 100, vCov = 250, min.minor = 0)
-#' # create a 'synchronized' file of the simulated data
-#' pool2sync(reference = pool$reference, alternative = pool$alternative, file = "mysync.txt")
+#' # create a 'synchronized' file of the simulated data - this will create a txt file
+#' # pool2sync(reference = pool$reference, alternative = pool$alternative, file = "mysync.txt")
 #'
 #' # simulate Pool-seq data for 10 individuals sampled at 5 loci
 #' genotypes <- run_scrm(nDip = 10, nloci = 5, theta = 5)
 #' # simulate Pool-seq data assuming a coverage of 100x and a single pool of 10 individuals
 #' pool <- simPoolseq(genotypes = genotypes, pools = 10, pError = 100, sError = 0.001,
 #' mCov = 100, vCov = 250, min.minor = 0)
-#' # create a 'synchronized' file of the simulated data
-#' pool2sync(reference = pool$reference, alternative = pool$alternative, file = "mysync.txt")
+#'
+#' # create a 'synchronized' file of the simulated data - this will create a txt file
+#' # pool2sync(reference = pool$reference, alternative = pool$alternative, file = "mysync.txt")
 #'
 #' @export
 pool2sync <- function(reference, alternative, file, pos = NULL) {
@@ -3223,7 +3225,8 @@ pool2sync <- function(reference, alternative, file, pos = NULL) {
     freqs <- unlist(sapply(1:nloci, function(l) sapply(1:length(reference[[l]]), function(i)
       strg2sync(reference = reference[[l]][i], alternative = alternative[[l]][i]))))
 
-    # create a data frame with the reference contig, position in the reference contig, reference character and allele frequencies
+    # create a data frame with the reference contig, position in the reference contig,
+    # reference character and allele frequencies
     mydf <- data.frame(chr, pos, REF, freqs)
   }
 

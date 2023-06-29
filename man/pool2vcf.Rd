@@ -62,17 +62,18 @@ genotypes <- run_scrm(nDip = 100, nloci = 1, theta = 5)
 # simulate Pool-seq data assuming a coverage of 100x and two pools of 50 individuals each
 pool <- simPoolseq(genotypes = genotypes, pools = c(50, 50), pError = 100, sError = 0.001,
 mCov = 100, vCov = 250, min.minor = 0)
-# create a vcf file of the simulated data
-pool2vcf(reference = pool$reference, alternative = pool$alternative, total = pool$total,
-file = "myvcf.txt")
+# create a vcf file of the simulated data - this will create a txt file
+# pool2vcf(reference = pool$reference, alternative = pool$alternative,
+# total = pool$total, file = "myvcf.txt")
 
 # simulate Pool-seq data for 10 individuals sampled at 5 loci
 genotypes <- run_scrm(nDip = 10, nloci = 5, theta = 5)
 # simulate Pool-seq data assuming a coverage of 100x and a single pool of 10 individuals
 pool <- simPoolseq(genotypes = genotypes, pools = 10, pError = 100, sError = 0.001,
 mCov = 100, vCov = 250, min.minor = 0)
-# create a vcf file of the simulated data
-pool2vcf(reference = pool$reference, alternative = pool$alternative, total = pool$total,
-file = "myvcf.txt")
+
+# create a vcf file of the simulated data - this will create a txt file
+# pool2vcf(reference = pool$reference, alternative = pool$alternative,
+# total = pool$total, file = "myvcf.txt")
 
 }
