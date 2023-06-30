@@ -1,15 +1,15 @@
 ---
-title: "poolvignette"
+title: "Vignette for the poolHelper package"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{poolvignette}
+  %\VignetteIndexEntry{Vignette for the poolHelper package}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
-  out.width = '70%', dpi = 300,
+  out.width = '80%', dpi = 300,
   collapse = TRUE,
   comment = "#>"
 )
@@ -19,6 +19,8 @@ knitr::opts_chunk$set(
 
 A method to simulate pooled sequencing data (Pool-seq) is implemented in the R language in the package `poolHelper`. The aim of this package is to provide users with a tool to chose the appropriate pool size and depth of coverage when conducting experiments that require pool sequencing. This vignette serves as a introduction, explaining how the different functions of the package can be used to assess the impact of different sequencing parameters.
 
+<br>
+
 At the end, we also included a section with details of specific functions. At that section, users can find a detailed step-by-step description of how to simulate Pool-seq data. The various subsections describe how to simulate the total depth of coverage and then partition that coverage among different pools and individuals. There is also a subsection describing how the number of reads with the reference allele can be computed according to the genotype of a given individual.
 
 ```{r setup}
@@ -27,11 +29,21 @@ library(poolHelper)
 
 With the `poolHelper` package, users can evaluate the effect of different pool errors, pool sizes and depths of coverage on the allele frequencies. The frequencies obtained with Pool-seq are compared to the allele frequencies computed directly from genotypes.
 
+<br>
+
+<br>
+
 # Basic functionality
 
 Briefly, we use `scrm` to simulate a single population at equilibrium and obtain polymorphic sites for each simulated locus. Then, we compute allele frequencies by counting the total number of derived alleles per site and dividing that by the total number of gene copies. After obtaining the allele frequencies computed directly from genotypes, we simulate Pool-seq data and obtain the Pool-seq allele frequencies. Details on this procedure can be found in the last section of this vignette.
 
+<br>
+
 We then use the `mae` function from the `Metrics` package to compute the average absolute difference between the Pool-seq allele frequencies and the ones obtained directly from the genotypes. Mean Absolute Error (MAE) is calculated as the sum of absolute errors divided by the sample size.
+
+<br>
+
+<br>
 
 # Pool-seq experimental design
 
@@ -40,6 +52,8 @@ As mentioned, the main goal of the package `poolHelper` is to provide users with
 ## How many pools should I use?
 
 One important aspect to consider is whether DNA extraction should be done using multiple batches of individuals, combining several of them into larger pools for library preparation and sequencing, or using a single batch of individuals. By using the `maePool` function we can check, under different conditions, what is the effect of using multiple or a single batch of individuals.
+
+<br>
 
 The `pools` input argument allows the user to simulate a single pool, by creating a list with a single integer or multiple pools, by creating a list with a vector containing various entries. The `maePool` function assumes that each entry of that vector is the size, in number of diploids individuals, of a given pool.
 
@@ -137,6 +151,65 @@ ggplot(mydf, aes(x = PoolError, y = absError, fill = mean)) +
 
 In this example, the number of sampled individuals was kept constant, meaning that the population was always sequenced using a pool of 100 individuals. Those 100 individuals were sequenced at 20x, 50x or 100x mean coverage and assuming a pool error value of 5%, 100% or 250%. By selecting multiple combinations of parameters, users can select a sequencing design that minimizes the average absolute difference between allele frequencies or get an idea of how much mismatch to expect in their Pool-seq data.
 
+<br>
+
+<br>
+
+# Simulate Pool-seq data
+
+The `poolHelper` package can also be used to simulate Pool-seq data without computing the average absolute difference. Thus, it is possible to use the package to simply obtain simulated Pool-seq data. This Pool-seq data is simulated for a given set of genotypes and so users should provide genotypes. Those genotypes can be obtained with coalescent-based or other type of simulators and using different demographic models. Pool-seq data can be simulated under a variety of parameter combinations, such as different pool sizes and mean coverage.
+
+<br>
+
+The `simPoolseq` function is used to simulate pooled sequencing data given a set of parameters and individual genotypes. Consider the following example:
+
+```{r simulate Pool-seq data}
+# simulate genotypes for 100 individuals sampled at 5 loci
+genotypes <- run_scrm(nDip = 100, nloci = 5, theta = 5)
+
+# simulate Pool-seq data assuming a coverage of 100x and a single pool of 100 individuals
+pool <- simPoolseq(genotypes = genotypes, pools = 100, pError = 100, sError = 0.001, mCov = 100, vCov = 250, min.minor = 0)
+
+# check the structure of the pool object
+str(pool)
+```
+
+The simulated Pool-seq data is organized as a list with three named entries: `reference`, `alternative` and `total`. Note that each of those entries has 5 different entries because we simulated 5 loci. Thus, each of the main list entries contains one entry per locus. Each of those entries is a matrix where column represents a different site. The `reference` entry contains the list with the number of reference allele reads, the `alternative` entry contains the list with number of alternative allele reads and the `total` entry contains the total depth of coverage per site.
+
+<br>
+
+Users can vary the pooling error (`pError`), the sequencing error (`sError`), the mean (`mCov`) and variance (`vCov`) of the coverage. It is also possible to filter the simulated Pool-seq data by selecting a value for the `min.minor` input. This value should be an integer representing the minimum allowed number of minor-allele reads. Sites that, across all populations, have less minor-allele reads than this threshold will be removed from the data. Additionally, it is also possible to define an `minimum` and `maximum` input arguments. These optional arguments will define the minimum and maximum coverage allowed. Sites where the coverage is below or above those thresholds will be removed from the data. For instance:
+
+```{r simulate Pool-seq data and filter by coverage}
+# simulate genotypes for 100 individuals sampled at 50 loci
+genotypes <- run_scrm(nDip = 100, nloci = 50, theta = 5)
+
+# simulate Pool-seq data assuming a coverage of 100x and a single pool of 100 individuals 
+# and remove all sites with a coverage below 80x or above 115x
+pool <- simPoolseq(genotypes = genotypes, pools = 100, pError = 100, sError = 0.001, mCov = 100, vCov = 500, min.minor = 0, minimum = 80, maximum = 115)
+
+# check the minimum and maximum coverage
+range(unlist(pool$total))
+```
+
+The previous chunk will remove all sites with a depth of coverage below 80x and above 115x. Thus, all the remaining sites will have a coverage comprised between those values.
+
+<br>
+
+<br>
+
+# Convert to other formats
+
+The simulated Pool-seq data can be converted to other commonly used file formats, specifically the `.vcf` and `.sync` formats. This allows users to simulate Pool-seq data, using different combinations of parameters and genotypes simulated under different demographic scenarios, convert the simulated Pool-seq data into `.vcf` or `.sync` and then use those files to analyse simulated Pool-seq data with existing downstream methods.
+
+<br>
+
+The `poolHelper` package includes the `pool2vcf` and the `pool2sync` functions to convert the simulated Pool-seq data into `.vcf` or `.sync` files, respectively. Note that both those functions will create and save the file in the current working directory. Please refer to the manual for more details on the functioning of both functions.
+
+<br>
+
+<br>
+
 # Details on specific functions
 
 In this section and until the end of the vignette, we go over the steps required to simulate Pool-seq data and give details on some of the specific functions included in the package.
@@ -167,6 +240,8 @@ str(reads)
 
 Now, the output of the function is slightly different. We still have a single locus (`nLoci = 1`) and 100 sites on that locus (`nSNPs = 100`) but now that one list entry is a matrix with two rows. Each row is the coverage per site for one population. Thus, the first row is the coverage for the first population of the `mcov` input argument and the second row is the coverage for the second population in that argument. If `mcov` had the mean coverage for more populations, the logic would remain the same.
 
+<br>
+
 The difference in the mean coverage of the two population can be quickly visualized. In the following we simulate two populations, one with 50x mean coverage and the other with 100x. We set `nSNPs = 10000` and visualize the coverage distribution using a histogram.
 
 ```{r plot reads}
@@ -183,6 +258,8 @@ hist(reads[[1]][2,], col = rgb(1,0,0,1/4), add = TRUE)
 ```
 
 The coverage distribution of the population simulated with a mean of 50x is shown in blue and the distribution of the 100x population is shown in red.
+
+<br>
 
 It is also possible to remove sites with low or high coverage by using the `remove_by_reads` function. This function will completely remove any site from the data (in this instance, the site will be removed from both populations). Sites will be removed if their coverage is below the `minimum` allowed or if it is above the `maximum` allowed. In the next bit, we use the `reads` simulated before and remove all sites with a coverage below 25x and above 150x.
 
@@ -203,7 +280,11 @@ Accordingly, the minimum simulated coverage before running the `remove_by_reads`
 
 It is also possible to simulate the contribution of each pool, assuming that a single population was sequenced using multiple pools. Before computing the actual number of reads contributed by each pool, we first need to simulate the proportion of contribution.
 
-To do this, we use the `poolProbs` function. The `nPools` input argument of this function should represent the number of pools used to sequence the population, while the `vector_np` contains the number of individuals per pool. Thus, in the following example `vector_np = c(10, 10, 10, 10)` means that four pools were used to sequence the population, each comprised of 10 individuals. The `pError` input argument defines the degree of pooling error. Briefly, this pooling error controls the dispersion of the pool contribution, centered around the expected value. Higher values of `pError` lead to a higher dispersion and thus, the contributions will vary more between pools. In other words, with higher values of `pError` some pools will contribute a lot of reads and others will not contribute much.
+<br>
+
+To do this, we use the `poolProbs` function. The `nPools` input argument of this function should represent the number of pools used to sequence the population, while the `vector_np` contains the number of individuals per pool. Thus, in the following example `vector_np = c(10, 10, 10, 10)` means that four pools were used to sequence the population, each comprised of 10 individuals. The `pError` input argument defines the degree of pooling error. Briefly, this pooling error controls the dispersion of the pool contribution, centred around the expected value. Higher values of `pError` lead to a higher dispersion and thus, the contributions will vary more between pools. In other words, with higher values of `pError` some pools will contribute a lot of reads and others will not contribute much.
+
+<br>
 
 In the next chunk, we see the difference in proportion of contribution when 4 pools of 10 individuals were used to sequence a single population and the pooling error is either low (`pError = 5`) or high (`pError = 250`). We can also assess the impact of different pool sizes by including one pool with 100 individuals instead of only 10.
 
@@ -216,13 +297,11 @@ poolProbs(nPools = 4, vector_np = c(10, 10, 10, 10), nSNPs = 6, pError = 250)
 poolProbs(nPools = 4, vector_np = c(10, 100, 10, 10), nSNPs = 6, pError = 5)
 ```
 
-The output of the `poolProbs` function is a matrix with the proportion of contribution for each pool. Each row of the matrix corresponds to a different pool and each column is a different site. You can see that in the first example, the proportion of contribution is roughly the same for all pools. The next example is similar but with `pError = 250`. With this higher pool error, it is clear that some pools have a higher proportion of contribution and others have a smaller. Thus, with higher pool errors, the proportion of contribution is no longer the same for all pools.
+The output of the `poolProbs` function is a matrix with the proportion of contribution for each pool. Each row of the matrix corresponds to a different pool and each column is a different site. You can see that in the first example, the proportion of contribution is roughly the same for all pools. The next example is similar but with `pError = 250`. With this higher pool error, it is clear that some pools have a higher proportion of contribution and others have a smaller. Thus, with higher pool errors, the proportion of contribution is no longer the same for all pools. This also happens when pool error is low but one of the pools is much larger. In the last example, the second pool has 100 individuals, while the other pools only have 10. In this instance, it is clear the the proportion of contribution of the larger pool is always higher.
 
-This also happens when pool error is low but one of the pools is much larger. In the last example, the second pool has 100 individuals, while the other pools only have 10. In this instance, it is clear the the proportion of contribution of the larger pool is always higher.
+<br>
 
-After computing the proportion of contribution of each pool, this can be used to simulate the actual number of reads contributed by each pool. To do this, we use the `pReads` function.
-
-This functions requires as input argument the total number of pools used to sequence the population (`nPools`), a vector with the total `coverage` per site and the probabilities of contribution computed with the `poolProbs` function (`probs`). In the next chunk, we simulate coverage for 10 SNPs of a single population, compute the probability of contribution for 4 pools used to sequence that population and then simulate the actual number of reads per pool.
+After computing the proportion of contribution of each pool, this can be used to simulate the actual number of reads contributed by each pool. To do this, we use the `pReads` function. This functions requires as input argument the total number of pools used to sequence the population (`nPools`), a vector with the total `coverage` per site and the probabilities of contribution computed with the `poolProbs` function (`probs`). In the next chunk, we simulate coverage for 10 SNPs of a single population, compute the probability of contribution for 4 pools used to sequence that population and then simulate the actual number of reads per pool.
 
 ```{r contribution pool low error}
 # simulate total coverage per site
@@ -249,6 +328,8 @@ pReads
 ```
 
 Then the contributions are more uneven. In this instance, there are some sites where one or two pools contribute most of the reads while the remaining pools have few or even zero reads. Thus, the total coverage is not very well distributed among all pools when pool error is higher.
+
+<br>
 
 The difference between low or high pool errors can be (roughly) inspected with a histogram. In the next chunk we simulate the total coverage and then use the same coverage to compute the contribution of each pool, using either a low or a high pool error. We then plot the distribution of the number of reads contributed by each pool.
 
@@ -293,7 +374,11 @@ The distribution of the contribution computed with a low pool error is shown in 
 
 After computing the number of reads contributed by each pool, the next step involves simulating the number of reads contributed by each individual inside their pool. For instance, if a pool of 10 individuals was used to sequence a population, how many reads were contributed by each of those 10 individuals?
 
+<br>
+
 As for the pools, the first step requires computing the probability of contribution of each individual. This can be done with the `indProbs` function. This `np` input argument of this function corresponds to the total number of individuals in the pool, while the `nSNPs` is the number of sites to simulate. As before, the `pError` represents the degree of pooling error and higher values of `pError` mean that some individuals will contribute more reads than others.
+
+<br>
 
 In the next chunk, we examine the probability of contribution of 10 individuals, sequenced at 6 sites, when pooling error is quite low.
 
@@ -311,7 +396,11 @@ round(indProbs(np = 10, nSNPs = 5, pError = 150), digits = 5)
 
 With this higher pooling error, it is evident that the probability of contribution is not the same across all individuals. Some individuals have a much higher probability of contribution while others have a probability of contribution very close to zero.
 
+<br>
+
 The probabilities of contribution of each individual can then be used to simulate the total number of reads contributed by each individual, using the `indReads` function. This function requires as input argument the total number of individuals sequenced in that pool (`np`), a vector with the total `coverage` of that particular pool per site and probabilities of contribution computed with the `indProbs` function (`probs`).
+
+<br>
 
 In the next chunk, we start by simulating the total coverage per site. This total coverage is then partitioned among the different pools to obtain the total coverage per pool. Finally, we simulate the contribution of the 10 individuals sequenced at one of the pools towards the total coverage of that pool. All these steps are done assuming a low pooling error.
 
@@ -349,7 +438,11 @@ We see that in this instance, there is much more dispersion and the individuals 
 
 Following the computation of the number of reads contributed by each individual, we should simulate how many of those reads have the reference allele versus how many have the alternative allele. For a single population this can be done using the `computeReference` function.
 
+<br>
+
 This function requires as input argument the individual contribution i.e. the number of reads that each individual contributes and the sequencing error - `error`. The sequencing error is defined as a error rate - the higher the error, the more likely it is for an individual that is homozygous for the reference allele (coded as 0 in the `genotypes` matrix) to contribute reads with the alternative allele. Note that this function also requires as input argument the `genotypes` of the individuals. Given that we did not simulate genotypes in this vignette, we are going to create a matrix of genotypes where half the individuals are homozygous for the reference allele and the other half is homozygous for the alternative allele (coded as 2 in the `genotypes` matrix).
+
+<br>
 
 In the next chunk we go over all the previous steps, simulating the total coverage for one population, then partitioning that over all pools and computing the contribution of each individual in one of those pools. At the end, we simulate how many of those individually contributed reads have the reference allele.
 
