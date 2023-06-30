@@ -1,4 +1,10 @@
+<<<<<<< HEAD
 # poolHelper
+=======
+# poolHelper (development version)
+
+# poolHelper 1.1.0
+>>>>>>> refs/remotes/origin/master
 
 ## version 1.1.0
 
